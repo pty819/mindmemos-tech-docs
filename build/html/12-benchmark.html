@@ -1,0 +1,290 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12. Benchmark 与性能 &mdash; MindMemOS 技术深度解析</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="13. 部署与配置" href="13-deployment.html" />
+    <link rel="prev" title="11. 集成方式" href="11-integration.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            MindMemOS 技术解析
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">目录</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="01-intro.html">1. 项目概述</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02-arch-overview.html">2. 系统架构总览</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03-typing-system.html">3. 类型系统（typing/）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04-pipeline-system.html">4. Pipeline 体系总览</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05-add-pipeline.html">5. Add Pipeline — 记忆写入</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06-search-pipeline.html">6. Search Pipeline — 记忆检索</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07-dreaming-pipeline.html">7. Dreaming Pipeline — 离线记忆巩固</a></li>
+<li class="toctree-l1"><a class="reference internal" href="08-feedback-pipeline.html">8. Feedback Pipeline — 在线反馈修正</a></li>
+<li class="toctree-l1"><a class="reference internal" href="09-components.html">9. 核心组件详解</a></li>
+<li class="toctree-l1"><a class="reference internal" href="10-infrastructure.html">10. 基础设施层</a></li>
+<li class="toctree-l1"><a class="reference internal" href="11-integration.html">11. 集成方式</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">12. Benchmark 与性能</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#locomo">12.1. LoCoMo 基准 — 对话记忆</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">12.1.1. 要点分析</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#personamem">12.2. PersonaMem 基准 — 用户画像</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dreaming">12.3. Dreaming 效果</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">12.4. 性能特征</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="13-deployment.html">13. 部署与配置</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MindMemOS 技术解析</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">12. </span>Benchmark 与性能</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/12-benchmark.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="benchmark">
+<h1><span class="section-number">12. </span>Benchmark 与性能<a class="headerlink" href="#benchmark" title="Link to this heading"></a></h1>
+<section id="locomo">
+<h2><span class="section-number">12.1. </span>LoCoMo 基准 — 对话记忆<a class="headerlink" href="#locomo" title="Link to this heading"></a></h2>
+<p>LoCoMo（Long-term Conversation Memory）是最主流的长期记忆评估基准。
+MindMemOS-schema 在此基准上取得 <strong>Overall 93.64</strong> 的 SOTA 成绩。</p>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">LoCoMo 完整对比</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>方法</p></th>
+<th class="head"><p>Single Hop</p></th>
+<th class="head"><p>Multi Hop</p></th>
+<th class="head"><p>Temporal</p></th>
+<th class="head"><p>Open Domain</p></th>
+<th class="head"><p><strong>Overall</strong></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>MindMemOS-schema</strong></p></td>
+<td><p><strong>97.62</strong></p></td>
+<td><p><strong>93.26</strong></p></td>
+<td><p>89.01</p></td>
+<td><p>75.00</p></td>
+<td><p><strong>93.64</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>EverMemOS</p></td>
+<td><p>96.67</p></td>
+<td><p>91.84</p></td>
+<td><p><strong>89.72</strong></p></td>
+<td><p><strong>76.04</strong></p></td>
+<td><p>93.05</p></td>
+</tr>
+<tr class="row-even"><td><p>Zep</p></td>
+<td><p>90.84</p></td>
+<td><p>81.91</p></td>
+<td><p>77.26</p></td>
+<td><p>75.00</p></td>
+<td><p>85.22</p></td>
+</tr>
+<tr class="row-odd"><td><p>MemOS</p></td>
+<td><p>85.37</p></td>
+<td><p>79.43</p></td>
+<td><p>75.08</p></td>
+<td><p>64.58</p></td>
+<td><p>80.76</p></td>
+</tr>
+<tr class="row-even"><td><p>MemU</p></td>
+<td><p>74.91</p></td>
+<td><p>72.34</p></td>
+<td><p>43.61</p></td>
+<td><p>54.17</p></td>
+<td><p>66.67</p></td>
+</tr>
+<tr class="row-odd"><td><p>Mem0</p></td>
+<td><p>68.97</p></td>
+<td><p>61.70</p></td>
+<td><p>58.26</p></td>
+<td><p>50.00</p></td>
+<td><p>64.20</p></td>
+</tr>
+<tr class="row-even"><td><p>MemoryOS</p></td>
+<td><p>67.30</p></td>
+<td><p>59.34</p></td>
+<td><p>42.26</p></td>
+<td><p>59.03</p></td>
+<td><p>60.11</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>测试条件</strong>：回复模型 = gpt-4.1-mini；Baseline 数据引用自 EverMemOS 论文。</p>
+<section id="id1">
+<h3><span class="section-number">12.1.1. </span>要点分析<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Single Hop（97.62）</strong>：单一事实点检索近乎完美</p></li>
+<li><p><strong>Multi Hop（93.26）</strong>：多跳推理超越 EverMemOS，归功于 Schema 的实体属性建模和图遍历</p></li>
+<li><p><strong>Temporal（89.01）</strong>：略低于 EverMemOS，时序推理仍有优化空间</p></li>
+<li><p><strong>Open Domain（75.00）</strong>：开放域检索持平，说明通用知识召回能力接近瓶颈</p></li>
+</ul>
+</section>
+</section>
+<section id="personamem">
+<h2><span class="section-number">12.2. </span>PersonaMem 基准 — 用户画像<a class="headerlink" href="#personamem" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">PersonaMem 对比</span><a class="headerlink" href="#id4" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>方法</p></th>
+<th class="head"><p>Recall Sha.</p></th>
+<th class="head"><p>Recall Men.</p></th>
+<th class="head"><p>Track Evo.</p></th>
+<th class="head"><p>Revisit</p></th>
+<th class="head"><p>Suggest</p></th>
+<th class="head"><p>Recommend</p></th>
+<th class="head"><p>Generalize</p></th>
+<th class="head"><p><strong>Overall</strong></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>MindMemOS</strong></p></td>
+<td><p>73.64%</p></td>
+<td><p><strong>82.35%</strong></p></td>
+<td><p><strong>67.63%</strong></p></td>
+<td><p>85.86%</p></td>
+<td><p>35.48%</p></td>
+<td><p><strong>80.00%</strong></p></td>
+<td><p>78.95%</p></td>
+<td><p><strong>69.61%</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>EverMemOS</p></td>
+<td><p>74.42%</p></td>
+<td><p>64.71%</p></td>
+<td><p>64.03%</p></td>
+<td><p>85.86%</p></td>
+<td><p>35.48%</p></td>
+<td><p>65.45%</p></td>
+<td><p>84.21%</p></td>
+<td><p>67.57%</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recall Men. (Ack. Latest)</strong> 和 <strong>Recommend</strong> 指标大幅领先，源于 Schema 模式对
+用户偏好的结构化建模能力。</p>
+</section>
+<section id="dreaming">
+<h2><span class="section-number">12.3. </span>Dreaming 效果<a class="headerlink" href="#dreaming" title="Link to this heading"></a></h2>
+<p>MemoryAgentBench 基准评测 Dreaming 前后的效果变化：</p>
+<table class="docutils align-default" id="id5">
+<caption><span class="caption-text">Dreaming 有效性</span><a class="headerlink" href="#id5" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>指标</p></th>
+<th class="head"><p>开启前</p></th>
+<th class="head"><p>开启后</p></th>
+<th class="head"><p>变化</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Single-hop SubEM</p></td>
+<td><p>83.00%</p></td>
+<td><p>88.75%</p></td>
+<td><p><strong>+5.75%</strong> 🟢</p></td>
+</tr>
+<tr class="row-odd"><td><p>Multi-hop SubEM</p></td>
+<td><p>10.75%</p></td>
+<td><p>14.00%</p></td>
+<td><p><strong>+3.25%</strong> 🟢</p></td>
+</tr>
+<tr class="row-even"><td><p>记忆数量变化</p></td>
+<td><p>(baseline)</p></td>
+<td><p>-27.9%</p></td>
+<td><p><strong>减少 28%</strong> 🟢</p></td>
+</tr>
+</tbody>
+</table>
+<p>Dreaming 通过合并重复、归档低价值、链接相关记忆，在提升检索精度的同时**减少了**记忆总量。</p>
+</section>
+<section id="id2">
+<h2><span class="section-number">12.4. </span>性能特征<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>API 延迟</strong>：sync add ~2-5s（含 LLM 调用），async add ~50ms（仅 Kafka 入队）</p></li>
+<li><p><strong>检索延迟</strong>：fast 模式 ~50-100ms，agentic 模式 ~2-8s（多轮推理）</p></li>
+<li><p><strong>Dreaming 吞吐</strong>：每 scope ~2-4 秒（含 2 次 LLM 调用），50 scopes 约 2-3 分钟</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="11-integration.html" class="btn btn-neutral float-left" title="11. 集成方式" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="13-deployment.html" class="btn btn-neutral float-right" title="13. 部署与配置" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, mindscale-noah.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

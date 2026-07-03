@@ -1,0 +1,246 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>9. 核心组件详解 &mdash; MindMemOS 技术深度解析</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="10. 基础设施层" href="10-infrastructure.html" />
+    <link rel="prev" title="8. Feedback Pipeline — 在线反馈修正" href="08-feedback-pipeline.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            MindMemOS 技术解析
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">目录</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="01-intro.html">1. 项目概述</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02-arch-overview.html">2. 系统架构总览</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03-typing-system.html">3. 类型系统（typing/）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04-pipeline-system.html">4. Pipeline 体系总览</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05-add-pipeline.html">5. Add Pipeline — 记忆写入</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06-search-pipeline.html">6. Search Pipeline — 记忆检索</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07-dreaming-pipeline.html">7. Dreaming Pipeline — 离线记忆巩固</a></li>
+<li class="toctree-l1"><a class="reference internal" href="08-feedback-pipeline.html">8. Feedback Pipeline — 在线反馈修正</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">9. 核心组件详解</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id2">9.1. 文本处理</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id3">9.1.1. 向量化</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">9.2. 对话分割</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">9.3. 记忆抽取</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id6">9.4. 记忆建模</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id7">9.5. 搜索组件</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dreaming">9.5.1. Dreaming 组件</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id8">9.6. 活动记录</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="10-infrastructure.html">10. 基础设施层</a></li>
+<li class="toctree-l1"><a class="reference internal" href="11-integration.html">11. 集成方式</a></li>
+<li class="toctree-l1"><a class="reference internal" href="12-benchmark.html">12. Benchmark 与性能</a></li>
+<li class="toctree-l1"><a class="reference internal" href="13-deployment.html">13. 部署与配置</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MindMemOS 技术解析</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">9. </span>核心组件详解</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/09-components.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1><span class="section-number">9. </span>核心组件详解<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">components/</span></code> 是 MindMemOS 的算法实现层，每个子包聚焦一个职责领域。</p>
+<section id="id2">
+<h2><span class="section-number">9.1. </span>文本处理<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>components/text/
+├── preprocessor.py   — 主入口：语言检测 → 归一化 → NER → tokenize → BM25
+├── _language.py      — 语言检测（中/英/混合，基于 Unicode 字符比例）
+├── _normalize.py     — 文本归一化（空格折叠、Unicode 规范化、标点清理）
+├── _entity.py        — 规则基命名实体识别（正则+词表）
+├── _lexical.py       — BM25 分词（支持中文 jieba + 英文空格分词）
+├── _hashing.py       — Hash-trick 索引映射
+├── vectorizer.py     — MemoryVectorizer（稀疏 + 稠密向量生成）
+├── sparse.py         — SparseVectorEncoder（BM25 hash-trick 权重编码）
+└── preprocessor.py   — TextPreprocessor（上述流程编排器）
+</pre></div>
+</div>
+<p>TextPreprocessor 是核心编排器，支持两个入口：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">preprocessor</span><span class="o">.</span><span class="n">preprocess_text</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">segment_id</span><span class="p">)</span>   <span class="c1"># 完整路径</span>
+<span class="n">preprocessor</span><span class="o">.</span><span class="n">preprocess_query</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>              <span class="c1"># 只做查询所需的最小路径（无 NER）</span>
+</pre></div>
+</div>
+<section id="id3">
+<h3><span class="section-number">9.1.1. </span>向量化<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<p>在 <code class="docutils literal notranslate"><span class="pre">components/text/vectorizer.py</span></code>：</p>
+<ul class="simple">
+<li><p><strong>Sparse</strong>：基于 BM25 hash-trick 的稀疏向量（同步）</p></li>
+<li><p><strong>Dense</strong>：通过 Embedding API 生成稠密向量（”fast”模式异步不等待）</p></li>
+</ul>
+</section>
+</section>
+<section id="id4">
+<h2><span class="section-number">9.2. </span>对话分割<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>components/chunker/
+├── segmenter.py           — SourceAwareSegment 定义
+├── episodes_chunker.py    — 情节级分割（Schema 模式）
+└── vanilla/
+    ├── turn_grouper.py    — 消息→回合（按用户意图）
+    ├── chunk_planner.py   — 回合→Chunk (token 预算控制)
+    ├── compactor.py       — 超长回合压缩
+    ├── history_packer.py  — 跨 chunk 历史滑动窗口
+    └── summarizer.py      — LLM 回合摘要
+    └── chunk_planner.py   — 含边界类型判定
+</pre></div>
+</div>
+<p>ChunkPlanner 通过硬 token 预算和软策略避免在 LLM 调用上浪费 token。</p>
+</section>
+<section id="id5">
+<h2><span class="section-number">9.3. </span>记忆抽取<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>components/extractor/
+├── protocols.py          — 抽取器 Protocol 定义
+├── vanilla/              — 默认抽取路径
+│   ├── add_builder.py    — 6 阶段编排（AddCoreBuilder）
+│   ├── add_recall.py     — RelatedMemoryRecall（召回相关记忆）
+│   ├── memory.py         — VanillaMemoryExtractor（主 LLM 调用）
+│   ├── _dedup.py         — 跨 chunk 候选去重
+│   ├── _entity.py        — 实体解析和去重
+│   ├── _safety_gate.py   — 动作规划（ADD/REINFORCE/UPDATE/MERGE/SKIP）
+│   └── _update_commands.py — 合并/归档/更新/强化命令构建
+└── schema/               — Schema 模式抽取
+    ├── schema_extractor.py  — SchemaExtractor（实体属性提取）
+    ├── schema_normalizer.py — 属性归一化（别名合并、类型推断）
+    ├── schema_planner.py    — Schema 写入规划
+    ├── base.py              — Schema 基础类型
+    └── ...                  — 高阶属性、合并策略、搜索字段
+</pre></div>
+</div>
+</section>
+<section id="id6">
+<h2><span class="section-number">9.4. </span>记忆建模<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>components/memory_modeling/
+├── vanilla/
+│   └── edges.py                   — 基础图边构建（MENTIONS, EXTRACTED_FROM）
+└── schema/
+    ├── base.py                    — Schema 模型基类
+    ├── edge.py                    — Schema 图边（HAS_PROPERTY_MEMORY, NEXT_IN_PROPERTY_TIMELINE）
+    ├── entity_manager.py          — Schema 实体管理器（属性查询/更新）
+    └── temporal_entity.py         — 时间线实体模型
+</pre></div>
+</div>
+</section>
+<section id="id7">
+<h2><span class="section-number">9.5. </span>搜索组件<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>components/searcher/
+├── protocols.py       — 召回策略协议
+├── final_filter.py    — 最终过滤（去重 + top_k + 排序）
+├── entity_recall.py   — 实体扩展召回（从候选记忆→实体→更多记忆）
+├── rerank.py          — 交叉编码器重排序
+├── rrf.py             — RRF 融合排序
+└── schema/            — Schema 模式检索
+    ├── schema_search_expander.py — Schema 搜索扩召
+    ├── property_recall.py        — 属性层面检索
+    ├── _ranker.py                — Schema 排序器
+    ├── _entity_weights.py        — 实体权重计算
+    ├── _entity_fusion.py         — 实体融合
+    ├── _entity_shrink.py         — 实体压缩
+    └── _query_builder.py         — Schema 查询构建
+</pre></div>
+</div>
+<section id="dreaming">
+<h3><span class="section-number">9.5.1. </span>Dreaming 组件<a class="headerlink" href="#dreaming" title="Link to this heading"></a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>components/dreaming/
+├── relation_detection.py  — LLM 驱动的问题检测（重复/冲突/过时/低价值）
+└── action_planning.py     — LLM 驱动的合并/更新/归档决策
+</pre></div>
+</div>
+</section>
+</section>
+<section id="id8">
+<h2><span class="section-number">9.6. </span>活动记录<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">components/activity/collector.py</span></code> 中的 <code class="docutils literal notranslate"><span class="pre">RecentActivityCollector</span></code> 负责从
+Qdrant add_record 集合中提取最近写入活动，供 Dreaming Pipeline 选择 hot scopes。</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="08-feedback-pipeline.html" class="btn btn-neutral float-left" title="8. Feedback Pipeline — 在线反馈修正" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="10-infrastructure.html" class="btn btn-neutral float-right" title="10. 基础设施层" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, mindscale-noah.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

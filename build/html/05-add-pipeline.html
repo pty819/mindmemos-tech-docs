@@ -1,0 +1,283 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5. Add Pipeline — 记忆写入 &mdash; MindMemOS 技术深度解析</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="6. Search Pipeline — 记忆检索" href="06-search-pipeline.html" />
+    <link rel="prev" title="4. Pipeline 体系总览" href="04-pipeline-system.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            MindMemOS 技术解析
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">目录</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="01-intro.html">1. 项目概述</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02-arch-overview.html">2. 系统架构总览</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03-typing-system.html">3. 类型系统（typing/）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04-pipeline-system.html">4. Pipeline 体系总览</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">5. Add Pipeline — 记忆写入</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#defaultaddpipeline">5.1. DefaultAddPipeline — 直写路径</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#vanillaaddpipeline-6">5.2. VanillaAddPipeline — 6 阶段全量路径</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#chunking">5.2.1. Chunking 细节</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#extractionenvelope-llm">5.2.2. ExtractionEnvelope — LLM 提取上下文</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#safety-gate">5.2.3. Safety Gate — 动作决策</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#schema-add-pipeline">5.3. Schema Add Pipeline</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="06-search-pipeline.html">6. Search Pipeline — 记忆检索</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07-dreaming-pipeline.html">7. Dreaming Pipeline — 离线记忆巩固</a></li>
+<li class="toctree-l1"><a class="reference internal" href="08-feedback-pipeline.html">8. Feedback Pipeline — 在线反馈修正</a></li>
+<li class="toctree-l1"><a class="reference internal" href="09-components.html">9. 核心组件详解 (components/)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="09-components.html#text">10. 文本处理 (text/)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="09-components.html#memoryvectorizer">11. 向量化 (MemoryVectorizer)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="09-components.html#chunker">12. 对话分割 (chunker/)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="09-components.html#extractor">13. 记忆抽取 (extractor/)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="09-components.html#memory-modeling">14. 记忆建模 (memory_modeling/)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="09-components.html#searcher">15. 搜索组件 (searcher/)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="10-infrastructure.html">16. 基础设施层</a></li>
+<li class="toctree-l1"><a class="reference internal" href="11-integration.html">17. 集成方式</a></li>
+<li class="toctree-l1"><a class="reference internal" href="12-benchmark.html">18. Benchmark 与性能</a></li>
+<li class="toctree-l1"><a class="reference internal" href="13-deployment.html">19. 部署与配置</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MindMemOS 技术解析</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">5. </span>Add Pipeline — 记忆写入</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/05-add-pipeline.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="add-pipeline">
+<h1><span class="section-number">5. </span>Add Pipeline — 记忆写入<a class="headerlink" href="#add-pipeline" title="Link to this heading"></a></h1>
+<p>Add Pipeline 是 MindMemOS 最复杂的子系统和性能关键路径，有两条实现路径：</p>
+<ol class="arabic simple">
+<li><p><strong>DefaultAddPipeline</strong> — 轻量直写路径（<code class="docutils literal notranslate"><span class="pre">default_add</span></code>）</p></li>
+<li><p><strong>VanillaAddPipeline</strong> — 6 阶段全量提取路径（<code class="docutils literal notranslate"><span class="pre">vanilla_add</span></code>，默认）</p></li>
+</ol>
+<section id="defaultaddpipeline">
+<h2><span class="section-number">5.1. </span>DefaultAddPipeline — 直写路径<a class="headerlink" href="#defaultaddpipeline" title="Link to this heading"></a></h2>
+<p>位于 <code class="docutils literal notranslate"><span class="pre">pipelines/add/default.py</span></code>。</p>
+<p><strong>适用场景</strong>：纯文本/文件知识入库，不需要 LLM 语义提取。</p>
+<p><strong>流程</strong>：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Input (TextMessage / FileMessage / UrlMessage)
+    │
+    ▼
+1. TextPreprocessor.preprocess_text()
+   │  - 语言检测 → 归一化 → 实体识别（NER）→ tokenize → BM25
+   ▼
+2. MemoryWrite 构造
+   │  - 分配 memory_id (uuid4)
+   │  - 构建 payload（content_hash, bm25_text, tokens, lang, ...）
+   ▼
+3. SparseVectorEncoder.encode_document()
+   │  - 稀疏向量编码（hash trick + BM25 权重）
+   ▼
+4. Entity 管理与图边
+   │  - 去重 entity → EntityWrite
+   │  - 创建 MENTIONS 关系（Memory→Entity）
+   ▼
+5. MemoryDbWriter.apply_mutation_plan()
+   │  - Qdrant + Neo4j 写入
+</pre></div>
+</div>
+</section>
+<section id="vanillaaddpipeline-6">
+<h2><span class="section-number">5.2. </span>VanillaAddPipeline — 6 阶段全量路径<a class="headerlink" href="#vanillaaddpipeline-6" title="Link to this heading"></a></h2>
+<p>位于 <code class="docutils literal notranslate"><span class="pre">pipelines/add/vanilla/vanilla_add.py</span></code>，编排由 <code class="docutils literal notranslate"><span class="pre">AddCoreBuilder``（``components/extractor/vanilla/add_builder.py</span></code>）驱动。</p>
+<p><strong>适用场景</strong>：对话/工具调用轨迹的语义理解与记忆提取。</p>
+<p><strong>6 阶段流程</strong>：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Phase 1: 对话分割 (Chunking)
+│ 1a. TurnGrouper.group()    — 将消息流分组为对话回合 (Turn)
+│ 1b. ChunkPlanner.plan()    — 回合打包为 Chunk（控制 token 预算）
+│ 1c. LongTurnCompactor()    — 超长回合的 head+summary+tail 压缩
+│
+Phase 2: 文本预处理 (Preprocess)
+│ TextPreprocessor.preprocess_many()
+│  - 语言检测 → 归一化 → NER → tokenize → BM25 → content_hash
+│
+Phase 3: 相关记忆召回 (Recall)
+│ RelatedMemoryRecall.recall()
+│  - 稀疏向量检索 → 实体扩展 → 图邻居召回 → RRF 融合
+│
+Phase 4: LLM 提取 (Extract)
+│ VanillaMemoryExtractor.extract_from_envelope()
+│  - 构建 ExtractionEnvelope（extractable / context 分离）
+│  - LLM 调用 → 解析 JSON → 提取 MemoryCandidate + EntityCandidate
+│  - 失败时降级为 deterministic fallback
+│
+Phase 5: 候选去重与动作规划 (Dedup + Safety Gate)
+│ 5a. CandidateDeduplicator.dedup()    — 跨 chunk 去重
+│ 5b. AddSafetyGate.gate_segment()     — 确定动作类型:
+│        ADD / REINFORCE / UPDATE / MERGE / SKIP
+│
+Phase 6: 向量化与持久化 (Vectorize + Write)
+│ MemoryVectorizer.vectorize()
+│  - Sparse: BM25 hash-trick 编码
+│  - Dense: Embedding API 调用（配置 &quot;fast&quot; 时异步）
+│ MemoryDbWriter.apply_mutation_plan()
+│  - Qdrant 写入点 + Neo4j 创建边
+</pre></div>
+</div>
+<section id="chunking">
+<h3><span class="section-number">5.2.1. </span>Chunking 细节<a class="headerlink" href="#chunking" title="Link to this heading"></a></h3>
+<p>Chunk 策略由 <code class="docutils literal notranslate"><span class="pre">components/chunker/vanilla/</span></code> 实现：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>TurnGrouper     — 消息→回合（按用户意图分组）
+ChunkPlanner    — 回合→Chunk（硬 token 预算 + 软边界检测）
+LongTurnCompactor — 超标回合 → head + summary + tail
+HistoryPacker   — 跨 chunk 滑动历史窗口
+LongTurnSummarizer — LLM 压缩超长回合（附结构化摘要）
+</pre></div>
+</div>
+</section>
+<section id="extractionenvelope-llm">
+<h3><span class="section-number">5.2.2. </span>ExtractionEnvelope — LLM 提取上下文<a class="headerlink" href="#extractionenvelope-llm" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ExtractionEnvelope</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">extractable_messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">TurnMessageRef</span><span class="p">]</span>     <span class="c1"># 可提取的证据</span>
+    <span class="n">current_context_messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">TurnMessageRef</span><span class="p">]</span> <span class="c1"># 不可提取的上下文</span>
+    <span class="n">history</span><span class="p">:</span> <span class="n">HistoryPack</span>                           <span class="c1"># 历史滑动窗口</span>
+    <span class="n">recalled_memories</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span>                  <span class="c1"># 相关记忆召回结果</span>
+    <span class="n">boundary</span><span class="p">:</span> <span class="n">ChunkBoundary</span>                        <span class="c1"># 边界类型</span>
+</pre></div>
+</div>
+<p>Chunk 边界类型影响 LLM 提取的保守度：</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Chunk 边界类型与 LLM 指导行为</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>边界类型</p></th>
+<th class="head"><p>LLM 指导行为</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>complete</p></td>
+<td><p>全信心提取</p></td>
+</tr>
+<tr class="row-odd"><td><p>compacted</p></td>
+<td><p>仅从头尾提取，中间摘要不可提取</p></td>
+</tr>
+<tr class="row-even"><td><p>open_head</p></td>
+<td><p>保守提取，标记为部分证据</p></td>
+</tr>
+<tr class="row-odd"><td><p>open_tail</p></td>
+<td><p>不将最后一轮视为结论</p></td>
+</tr>
+<tr class="row-even"><td><p>orphan</p></td>
+<td><p>仅提取明确稳定的事实</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="safety-gate">
+<h3><span class="section-number">5.2.3. </span>Safety Gate — 动作决策<a class="headerlink" href="#safety-gate" title="Link to this heading"></a></h3>
+<p>确定每个候选记忆的最终动作：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">PlannedAddAction</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">action_type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;add&quot;</span><span class="p">,</span> <span class="s2">&quot;reinforce&quot;</span><span class="p">,</span> <span class="s2">&quot;update&quot;</span><span class="p">,</span> <span class="s2">&quot;merge&quot;</span><span class="p">,</span> <span class="s2">&quot;skip&quot;</span><span class="p">]</span>
+    <span class="n">memory_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">content</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><strong>add</strong> — 全新记忆</p></li>
+<li><p><strong>reinforce</strong> — 已有记忆的强化计数 +1</p></li>
+<li><p><strong>update</strong> — 内容修正/补充</p></li>
+<li><p><strong>merge</strong> — 合并相关记忆并归档旧记忆</p></li>
+<li><p><strong>skip</strong> — 低质量/重复内容跳过</p></li>
+</ul>
+</section>
+</section>
+<section id="schema-add-pipeline">
+<h2><span class="section-number">5.3. </span>Schema Add Pipeline<a class="headerlink" href="#schema-add-pipeline" title="Link to this heading"></a></h2>
+<p>对于 Schema 模式（启用实体属性建模），走 <code class="docutils literal notranslate"><span class="pre">pipelines/add/schema/schema_add.py</span></code>：</p>
+<ul class="simple">
+<li><p>通过 SchemaExtractor 提取实体的结构化属性</p></li>
+<li><p>将属性建模为 HAS_PROPERTY_MEMORY 关系</p></li>
+<li><p>维护实体的属性时间线（NEXT_IN_PROPERTY_TIMELINE）</p></li>
+<li><p>异步 drain 流程：Kafka 消费者处理 SchemaAdd 缓冲区 → 全量推理 → 图边创建</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="04-pipeline-system.html" class="btn btn-neutral float-left" title="4. Pipeline 体系总览" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="06-search-pipeline.html" class="btn btn-neutral float-right" title="6. Search Pipeline — 记忆检索" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, mindscale-noah.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

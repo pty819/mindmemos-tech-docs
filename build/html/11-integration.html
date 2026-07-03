@@ -1,0 +1,248 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11. 集成方式 &mdash; MindMemOS 技术深度解析</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="12. Benchmark 与性能" href="12-benchmark.html" />
+    <link rel="prev" title="10. 基础设施层" href="10-infrastructure.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            MindMemOS 技术解析
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">目录</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="01-intro.html">1. 项目概述</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02-arch-overview.html">2. 系统架构总览</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03-typing-system.html">3. 类型系统（typing/）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04-pipeline-system.html">4. Pipeline 体系总览</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05-add-pipeline.html">5. Add Pipeline — 记忆写入</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06-search-pipeline.html">6. Search Pipeline — 记忆检索</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07-dreaming-pipeline.html">7. Dreaming Pipeline — 离线记忆巩固</a></li>
+<li class="toctree-l1"><a class="reference internal" href="08-feedback-pipeline.html">8. Feedback Pipeline — 在线反馈修正</a></li>
+<li class="toctree-l1"><a class="reference internal" href="09-components.html">9. 核心组件详解</a></li>
+<li class="toctree-l1"><a class="reference internal" href="10-infrastructure.html">10. 基础设施层</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">11. 集成方式</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#python-sdk">11.1. Python SDK</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cli">11.2. CLI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#http-api">11.3. HTTP API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#skill-md">11.3.1. SKILL.md 配置示例</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="12-benchmark.html">12. Benchmark 与性能</a></li>
+<li class="toctree-l1"><a class="reference internal" href="13-deployment.html">13. 部署与配置</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MindMemOS 技术解析</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">11. </span>集成方式</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/11-integration.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1><span class="section-number">11. </span>集成方式<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
+<p>MindMemOS 提供四种集成方式，覆盖从原生 SDK 到插件化集成。</p>
+<section id="python-sdk">
+<h2><span class="section-number">11.1. </span>Python SDK<a class="headerlink" href="#python-sdk" title="Link to this heading"></a></h2>
+<p>已发布 PyPI：<code class="docutils literal notranslate"><span class="pre">mindmemos-sdk</span></code>。通过 <code class="docutils literal notranslate"><span class="pre">MindMemOSClient</span></code> 操作记忆：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mindmemos_sdk</span><span class="w"> </span><span class="kn">import</span> <span class="n">MindMemOSClient</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mindmemos_sdk.memory</span><span class="w"> </span><span class="kn">import</span> <span class="n">DialogueMessage</span>
+
+<span class="c1"># 方式1：复用本地 auth 配置</span>
+<span class="k">with</span> <span class="n">MindMemOSClient</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+        <span class="n">messages</span><span class="o">=</span><span class="p">[</span><span class="n">DialogueMessage</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="s2">&quot;我喜欢喝冰美式&quot;</span><span class="p">)]</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">memories</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">operation</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">memory_id</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+
+    <span class="n">memories</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">&quot;咖啡偏好&quot;</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">memories</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">hit</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">hit</span><span class="o">.</span><span class="n">memory</span><span class="p">)</span>
+
+<span class="c1"># 方式2：显式传参</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">MindMemOSClient</span><span class="p">(</span>
+    <span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://mindmemos.cn&quot;</span><span class="p">,</span>
+    <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;mk_xxx&quot;</span><span class="p">,</span>
+    <span class="n">user_id</span><span class="o">=</span><span class="s2">&quot;u_123&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="cli">
+<h2><span class="section-number">11.2. </span>CLI<a class="headerlink" href="#cli" title="Link to this heading"></a></h2>
+<p>随 SDK 一起安装。CLI 子命令覆盖所有操作：</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 认证</span>
+uv<span class="w"> </span>run<span class="w"> </span>mindmemos<span class="w"> </span>auth
+
+<span class="c1"># 写入</span>
+mindmemos<span class="w"> </span>memory<span class="w"> </span>add<span class="w"> </span>--content<span class="w"> </span><span class="s2">&quot;我喜欢喝冰美式&quot;</span><span class="w"> </span>--role<span class="w"> </span>user
+
+<span class="c1"># 检索</span>
+mindmemos<span class="w"> </span>memory<span class="w"> </span>search<span class="w"> </span><span class="s2">&quot;咖啡偏好&quot;</span><span class="w"> </span>--top-k<span class="w"> </span><span class="m">5</span>
+
+<span class="c1"># 更新/删除</span>
+mindmemos<span class="w"> </span>memory<span class="w"> </span>update<span class="w"> </span>--memory-id<span class="w"> </span>&lt;id&gt;<span class="w"> </span>--content<span class="w"> </span><span class="s2">&quot;我现在更喜欢拿铁&quot;</span>
+mindmemos<span class="w"> </span>memory<span class="w"> </span>delete<span class="w"> </span>--memory-id<span class="w"> </span>&lt;id&gt;
+
+<span class="c1"># 反馈</span>
+mindmemos<span class="w"> </span>memory<span class="w"> </span>feedback<span class="w"> </span>--text<span class="w"> </span><span class="s2">&quot;刚才召回的偏好不准确&quot;</span>
+
+<span class="c1"># 巩固</span>
+mindmemos<span class="w"> </span>memory<span class="w"> </span>dreaming<span class="w"> </span>--sync
+
+<span class="c1"># 诊断</span>
+mindmemos<span class="w"> </span>doctor
+</pre></div>
+</div>
+<p>CLI 拥有完整的 <code class="docutils literal notranslate"><span class="pre">--json</span></code> 输出模式，方便脚本调用。</p>
+</section>
+<section id="http-api">
+<h2><span class="section-number">11.3. </span>HTTP API<a class="headerlink" href="#http-api" title="Link to this heading"></a></h2>
+<p>通过仓库内 skill 目录下的 <code class="docutils literal notranslate"><span class="pre">SKILL.md</span></code> 定义 Agent 集成方式：</p>
+<ul class="simple">
+<li><p><strong>Hermes Agent</strong>：安装 <code class="docutils literal notranslate"><span class="pre">mindmemos-cli</span></code> skill</p></li>
+<li><p><strong>OpenClaw</strong>：npm 安装 <code class="docutils literal notranslate"><span class="pre">&#64;mindmemos/openclaw-plugin</span></code></p></li>
+<li><p><strong>Codex</strong> / <strong>Claude Code</strong>：通过 CLI 接口对接</p></li>
+</ul>
+<section id="skill-md">
+<h3><span class="section-number">11.3.1. </span>SKILL.md 配置示例<a class="headerlink" href="#skill-md" title="Link to this heading"></a></h3>
+<p>位于 <code class="docutils literal notranslate"><span class="pre">skills/mindmemos-cli/SKILL.md</span></code>：</p>
+<div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span>---
+name: mindmemos-cli
+<span class="gu">description: Give an AI agent persistent, cross-session long-term memory</span>
+<span class="gu">---</span>
+
+<span class="gh"># MindMemOS CLI</span>
+
+mindmemos &lt;group&gt; &lt;command&gt; [args] [options]
+mindmemos auth
+mindmemos memory search &lt;query&gt;
+mindmemos memory add --content &lt;text&gt;
+...
+</pre></div>
+</div>
+<p>CLI 的 <code class="docutils literal notranslate"><span class="pre">SKILL.md</span></code> 同时定义了何时使用何种操作：</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">CLI 操作对照表</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>意图</p></th>
+<th class="head"><p>操作</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>记住新事实</p></td>
+<td><p>add</p></td>
+<td><p>服务端自动去重/合并</p></td>
+</tr>
+<tr class="row-odd"><td><p>查询已有记忆</p></td>
+<td><p>search</p></td>
+<td><p>fast（低延迟）或 agentic</p></td>
+</tr>
+<tr class="row-even"><td><p>查看全部</p></td>
+<td><p>get</p></td>
+<td><p>无查询，按 filter 列举</p></td>
+</tr>
+<tr class="row-odd"><td><p>修正错误/过时</p></td>
+<td><p>update</p></td>
+<td><p>按 memory_id 精确修正</p></td>
+</tr>
+<tr class="row-even"><td><p>反馈质量</p></td>
+<td><p>feedback</p></td>
+<td><p>显式或隐式分析</p></td>
+</tr>
+<tr class="row-odd"><td><p>离线巩固</p></td>
+<td><p>dreaming</p></td>
+<td><p>定期执行，非每轮调用</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="10-infrastructure.html" class="btn btn-neutral float-left" title="10. 基础设施层" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="12-benchmark.html" class="btn btn-neutral float-right" title="12. Benchmark 与性能" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, mindscale-noah.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

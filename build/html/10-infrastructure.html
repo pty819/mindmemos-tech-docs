@@ -1,0 +1,269 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>10. 基础设施层 &mdash; MindMemOS 技术深度解析</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="11. 集成方式" href="11-integration.html" />
+    <link rel="prev" title="9. 核心组件详解" href="09-components.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            MindMemOS 技术解析
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">目录</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="01-intro.html">1. 项目概述</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02-arch-overview.html">2. 系统架构总览</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03-typing-system.html">3. 类型系统（typing/）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04-pipeline-system.html">4. Pipeline 体系总览</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05-add-pipeline.html">5. Add Pipeline — 记忆写入</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06-search-pipeline.html">6. Search Pipeline — 记忆检索</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07-dreaming-pipeline.html">7. Dreaming Pipeline — 离线记忆巩固</a></li>
+<li class="toctree-l1"><a class="reference internal" href="08-feedback-pipeline.html">8. Feedback Pipeline — 在线反馈修正</a></li>
+<li class="toctree-l1"><a class="reference internal" href="09-components.html">9. 核心组件详解</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">10. 基础设施层</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#qdrant">10.1. Qdrant — 向量 + 负载数据库</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#collection">10.1.1. Collection 设计</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">10.1.2. 向量存储策略</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#neo4j">10.2. Neo4j — 知识图谱</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id3">10.2.1. 图数据模型</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">10.2.2. 核心图查询路径</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#kafka">10.3. Kafka — 事件流与异步处理</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#opentelemetry">10.4. OpenTelemetry — 可观测性</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#config">10.5. 配置系统 (config/)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mapper">10.6. Mapper 层</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="11-integration.html">11. 集成方式</a></li>
+<li class="toctree-l1"><a class="reference internal" href="12-benchmark.html">12. Benchmark 与性能</a></li>
+<li class="toctree-l1"><a class="reference internal" href="13-deployment.html">13. 部署与配置</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MindMemOS 技术解析</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">10. </span>基础设施层</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/10-infrastructure.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1><span class="section-number">10. </span>基础设施层<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
+<section id="qdrant">
+<h2><span class="section-number">10.1. </span>Qdrant — 向量 + 负载数据库<a class="headerlink" href="#qdrant" title="Link to this heading"></a></h2>
+<p>Qdrant 承担双重职责：<strong>语义检索**和**全负载持久化</strong>。</p>
+<section id="collection">
+<h3><span class="section-number">10.1.1. </span>Collection 设计<a class="headerlink" href="#collection" title="Link to this heading"></a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Qdrant Collection     | 用途                    | Payload 模式
+---------------------+-------------------------+-------------------------
+memory_item_v1       | 记忆点 + 稠密/稀疏向量   | MemoryWrite payload
+entity_item_v1       | 实体点                   | EntityWrite payload
+source_item_v1       | 文件/URL 来源            | SourceWrite payload
+add_record           | 操作记录（审计）          | AddRecord payload
+search_record        | 检索记录（审计）          | SearchRecord payload
+schema_add_buffer    | Schema 模式写入缓冲区     | SchemaAddBuffer payload
+</pre></div>
+</div>
+</section>
+<section id="id2">
+<h3><span class="section-number">10.1.2. </span>向量存储策略<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># 稠密向量配置</span>
+<span class="n">vectors_config</span> <span class="o">=</span> <span class="n">VectorParams</span><span class="p">(</span>
+    <span class="n">size</span><span class="o">=</span><span class="n">model_config</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">,</span>   <span class="c1"># 如 1536 (text-embedding-3-small)</span>
+    <span class="n">distance</span><span class="o">=</span><span class="n">Distance</span><span class="o">.</span><span class="n">COSINE</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># 稀疏向量配置</span>
+<span class="n">sparse_vectors_config</span> <span class="o">=</span> <span class="n">SparseVectorParams</span><span class="p">(</span>
+    <span class="n">index</span><span class="o">=</span><span class="n">SparseIndexConfig</span><span class="p">(</span>
+        <span class="n">full_scan_threshold</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>     <span class="c1"># &lt; 1w 点全扫描</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Qdrant 批量写入通过 <code class="docutils literal notranslate"><span class="pre">infra/db/qdrant_batch_writer.py</span></code> 实现，支持：</p>
+<ul class="simple">
+<li><p>内存缓冲 → 定时 flush</p></li>
+<li><p>一致性级别：fast（写入即回）vs strong（等待确认）</p></li>
+</ul>
+</section>
+</section>
+<section id="neo4j">
+<h2><span class="section-number">10.2. </span>Neo4j — 知识图谱<a class="headerlink" href="#neo4j" title="Link to this heading"></a></h2>
+<p>Neo4j 负责记忆点之间的**语义关系**，不存储负载数据（负载在 Qdrant 中）。</p>
+<section id="id3">
+<h3><span class="section-number">10.2.1. </span>图数据模型<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(Memory)-[:MENTIONS]-&gt;(Entity)
+(Memory)-[:EXTRACTED_FROM]-&gt;(Source)
+(Memory)-[:RELATES_TO | RELATED_TO]-&gt;(Memory)
+(Memory)-[:HAS_PROPERTY_MEMORY]-&gt;(Memory)  # Schema 模式
+(Memory)-[:NEXT_IN_PROPERTY_TIMELINE]-&gt;(Memory)
+(Entity)-[:MENTIONED_IN_SOURCE]-&gt;(Source)
+(Entity)-[:RELATES_TO]-&gt;(Entity)
+(Memory)-[:DERIVED_FROM]-&gt;(Memory)          # 版本衍化
+</pre></div>
+</div>
+</section>
+<section id="id4">
+<h3><span class="section-number">10.2.2. </span>核心图查询路径<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>实体扩展召回：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>1. 搜索命中 → 获取 entity_id
+2. MATCH (e:Entity {entity_id})&lt;-[MENTIONS]-(m:Memory)
+3. WHERE m.status = &#39;active&#39; AND m.project_id = ctx.project_id
+4. RETURN DISTINCT m
+</pre></div>
+</div>
+<p>记忆邻居遍历：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>1. MATCH (seed:Memory {memory_id})-[r:RELATES_TO|RELATED_TO]-(neighbor:Memory)
+2. 可选通过共享实体桥接:
+   MATCH (seed)-[:MENTIONS]-&gt;(e:Entity)&lt;-[:MENTIONS]-(neighbor)
+3. WHERE neighbor.status = &#39;active&#39;
+4. RETURN DISTINCT neighbor
+</pre></div>
+</div>
+</section>
+</section>
+<section id="kafka">
+<h2><span class="section-number">10.3. </span>Kafka — 事件流与异步处理<a class="headerlink" href="#kafka" title="Link to this heading"></a></h2>
+<p>Kafka 用于解耦耗时操作：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Topic               | 用途                    | 消费者
+--------------------+------------------------+---------------------------
+memory.add          | 异步记忆写入             | workers/memory_add.py
+memory.dreaming     | 离线巩固任务             | workers/memory_dreaming.py
+memory.feedback     | 反馈处理                | workers/memory_feedback.py
+schema.add.drain    | Schema 缓冲区 drain     | workers/schema_add_drain.py
+schema.add.episode  | Schema 情节边创建       | workers/schema_add_episode.py
+skill.evolve        | Skill 自动演化          | workers/skill_evolve.py
+</pre></div>
+</div>
+<p>Kafka 可关闭（<code class="docutils literal notranslate"><span class="pre">kafka.enabled=false</span></code>），此时异步操作返回错误提示。</p>
+</section>
+<section id="opentelemetry">
+<h2><span class="section-number">10.4. </span>OpenTelemetry — 可观测性<a class="headerlink" href="#opentelemetry" title="Link to this heading"></a></h2>
+<p>通过 <code class="docutils literal notranslate"><span class="pre">infra/telemetry.py</span></code> 集成，追踪所有 Pipeline 关键路径：</p>
+<ul class="simple">
+<li><p>Pipeline 级别的 Span（<code class="docutils literal notranslate"><span class="pre">add.vanilla_add.sync</span></code>, <code class="docutils literal notranslate"><span class="pre">dreaming.consolidate</span></code>）</p></li>
+<li><p>LLM 调用耗时</p></li>
+<li><p>数据库读写耗时</p></li>
+<li><p>配置项：<code class="docutils literal notranslate"><span class="pre">telemetry.enabled</span></code> + OTel Collector endpoint</p></li>
+</ul>
+</section>
+<section id="config">
+<h2><span class="section-number">10.5. </span>配置系统 (config/)<a class="headerlink" href="#config" title="Link to this heading"></a></h2>
+<p>分层配置系统：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>config/
+├── app.py          — 应用级配置（数据库连接、Kafka、认证）
+├── base.py         — BaseModel 基类
+├── context.py      — 全局配置持有者（get_config() 单例）
+├── validation.py   — 配置校验
+└── algo/           — 算法级配置
+    ├── root.py     — 算法配置根
+    ├── common.py   — 共享配置（ModelRouterConfig）
+    ├── text_processing.py — 文本处理配置
+    ├── dreaming.py — Dreaming 配置
+    └── add/        — Add Pipeline 配置
+    └── search/     — Search Pipeline 配置
+    └── skill/      — Skill 配置
+</pre></div>
+</div>
+<p>通过环境变量 <code class="docutils literal notranslate"><span class="pre">MINDMEMOS_CONFIG</span></code> 指定配置文件路径，支持 YAML 格式。</p>
+</section>
+<section id="mapper">
+<h2><span class="section-number">10.6. </span>Mapper 层<a class="headerlink" href="#mapper" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">mappers/</span></code> 是 DTO 层和数据库原语的唯一桥梁：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>mappers/
+├── api.py           — HTTP Schema → Pipeline Input DTO
+├── db.py            — Write DTO → Qdrant Point + Neo4j Statement
+├── search_filters.py — DSL Filter → SearchFilter → Qdrant Filter
+├── result.py        — Qdrant Record → MemoryView
+├── errors.py        — 异常转换
+└── skill.py         — Skill DTO 转换
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="09-components.html" class="btn btn-neutral float-left" title="9. 核心组件详解" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="11-integration.html" class="btn btn-neutral float-right" title="11. 集成方式" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, mindscale-noah.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

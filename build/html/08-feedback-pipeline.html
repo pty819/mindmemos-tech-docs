@@ -1,0 +1,197 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>8. Feedback Pipeline — 在线反馈修正 &mdash; MindMemOS 技术深度解析</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="9. 核心组件详解 (components/)" href="09-components.html" />
+    <link rel="prev" title="7. Dreaming Pipeline — 离线记忆巩固" href="07-dreaming-pipeline.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            MindMemOS 技术解析
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">目录</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="01-intro.html">1. 项目概述</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02-arch-overview.html">2. 系统架构总览</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03-typing-system.html">3. 类型系统（typing/）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04-pipeline-system.html">4. Pipeline 体系总览</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05-add-pipeline.html">5. Add Pipeline — 记忆写入</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06-search-pipeline.html">6. Search Pipeline — 记忆检索</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07-dreaming-pipeline.html">7. Dreaming Pipeline — 离线记忆巩固</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">8. Feedback Pipeline — 在线反馈修正</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">8.1. 显式反馈</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">8.2. 隐式反馈</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#action-planner">8.3. Action Planner</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="09-components.html">9. 核心组件详解 (<code class="docutils literal notranslate"><span class="pre">components/</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="10-infrastructure.html">10. 基础设施层</a></li>
+<li class="toctree-l1"><a class="reference internal" href="11-integration.html">11. 集成方式</a></li>
+<li class="toctree-l1"><a class="reference internal" href="12-benchmark.html">12. Benchmark 与性能</a></li>
+<li class="toctree-l1"><a class="reference internal" href="13-deployment.html">13. 部署与配置</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MindMemOS 技术解析</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">8. </span>Feedback Pipeline — 在线反馈修正</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/08-feedback-pipeline.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="feedback-pipeline">
+<h1><span class="section-number">8. </span>Feedback Pipeline — 在线反馈修正<a class="headerlink" href="#feedback-pipeline" title="Link to this heading"></a></h1>
+<p>Feedback Pipeline 是 MindMemOS 的**在线学习闭环**，支持显式反馈和隐式反馈两种模式。</p>
+<section id="id1">
+<h2><span class="section-number">8.1. </span>显式反馈<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>由 <code class="docutils literal notranslate"><span class="pre">api/routes.py</span></code> 的 <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/v1/memory/feedback</span></code> 端点触发。</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>用户反馈文本 → FeedbackPipelineInput
+    │ 包含 feedback + messages + recalled_memories
+    ▼
+ExplicitFeedbackPlanner
+    │ LLM 分析反馈内容、对话上下文和召回的记忆
+    ▼
+FeedbackActionResult (四种动作)
+    ├─ add    — 新增记忆（补充缺失信息）
+    ├─ update — 更新已有记忆（修正错误）
+    ├─ delete — 删除记忆（清除错误信息）
+    └─ noop   — 无需修改
+</pre></div>
+</div>
+</section>
+<section id="id2">
+<h2><span class="section-number">8.2. </span>隐式反馈<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>自动分析对话记录，无需用户主动反馈。由以下子组件实现：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>QueryRewriter — 从操作记录中提取查询语句
+    │
+    ▼
+RoundsCollector — 收集紧凑对话轮次（query + response 对）
+    │
+    ▼
+SignalDetector — 检测每轮中的负反馈信号
+    │ 按分类：
+    │  - task_temporary    — 当前任务临时修正
+    │  - scenario_specific — 场景特定偏好
+    │  - long_term         — 应永久保存的偏好
+    ▼
+ImplicitFeedbackPlanner — 对反馈信号生成修正动作
+    │
+    ▼
+FeedbackExecutor — 执行动作（调用 add/update/delete 操作）
+</pre></div>
+</div>
+<p>隐式反馈的信号源包括：</p>
+<ul class="simple">
+<li><p>用户重复相同请求（记忆未命中）</p></li>
+<li><p>用户修正助手输出（”不是 X，是 Y”）</p></li>
+<li><p>用户明确表示不满</p></li>
+<li><p>会话中的语义转折</p></li>
+</ul>
+</section>
+<section id="action-planner">
+<h2><span class="section-number">8.3. </span>Action Planner<a class="headerlink" href="#action-planner" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">components/feedback/action_planner.py</span></code> 负责生成具体的反馈修正动作：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">FeedbackAddAction</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">action</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;add&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;add&quot;</span>
+    <span class="n">result_memory_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">after_content</span><span class="p">:</span> <span class="nb">str</span>           <span class="c1"># 新记忆内容</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">FeedbackUpdateAction</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">action</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;update&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;update&quot;</span>
+    <span class="n">target_memory_id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">before_content</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">after_content</span><span class="p">:</span> <span class="nb">str</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">FeedbackDeleteAction</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">action</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;delete&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;delete&quot;</span>
+    <span class="n">target_memory_id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">before_content</span><span class="p">:</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>整个反馈回路通过 Kafka 异步解耦，<code class="docutils literal notranslate"><span class="pre">workers/memory_feedback.py</span></code> 消费并执行。</p>
+<p>Feedback Pipeline 实现了 MindMemOS 的**自我修正机制**，每次用户的”不是这样的”，
+都在悄悄地优化记忆质量。</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="07-dreaming-pipeline.html" class="btn btn-neutral float-left" title="7. Dreaming Pipeline — 离线记忆巩固" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="09-components.html" class="btn btn-neutral float-right" title="9. 核心组件详解 (components/)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, mindscale-noah.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

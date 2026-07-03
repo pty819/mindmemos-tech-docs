@@ -1,0 +1,264 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3. 类型系统（typing/） &mdash; MindMemOS 技术深度解析</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="4. Pipeline 体系总览" href="04-pipeline-system.html" />
+    <link rel="prev" title="2. 系统架构总览" href="02-arch-overview.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            MindMemOS 技术解析
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">目录</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="01-intro.html">1. 项目概述</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02-arch-overview.html">2. 系统架构总览</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">3. 类型系统（typing/）</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">3.1. 类型分层</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#memory-py">3.2. <strong>memory.py</strong> — 业务核心</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#memorytype">3.2.1. 内存类型 (MemoryType)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#graph-relationship">3.2.2. 图关系标签 (Graph Relationship)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#searchfilter-dsl">3.2.3. SearchFilter — 查询过滤器 DSL</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#memorywrite-dto">3.2.4. MemoryWrite — 存储写 DTO</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#service-py-pipeline">3.3. <strong>service.py</strong> — Pipeline 合约</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#algo-py-dto">3.4. <strong>algo.py</strong> — 算法中间 DTO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#memory-db-py-dto">3.5. <strong>memory_db.py</strong> — 数据库操作 DTO</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="04-pipeline-system.html">4. Pipeline 体系总览</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05-add-pipeline.html">5. Add Pipeline — 记忆写入</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06-search-pipeline.html">6. Search Pipeline — 记忆检索</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07-dreaming-pipeline.html">7. Dreaming Pipeline — 离线记忆巩固</a></li>
+<li class="toctree-l1"><a class="reference internal" href="08-feedback-pipeline.html">8. Feedback Pipeline — 在线反馈修正</a></li>
+<li class="toctree-l1"><a class="reference internal" href="09-components.html">9. 核心组件详解 (<code class="docutils literal notranslate"><span class="pre">components/</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="10-infrastructure.html">10. 基础设施层</a></li>
+<li class="toctree-l1"><a class="reference internal" href="11-integration.html">11. 集成方式</a></li>
+<li class="toctree-l1"><a class="reference internal" href="12-benchmark.html">12. Benchmark 与性能</a></li>
+<li class="toctree-l1"><a class="reference internal" href="13-deployment.html">13. 部署与配置</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MindMemOS 技术解析</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">3. </span>类型系统（typing/）</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/03-typing-system.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="typing">
+<h1><span class="section-number">3. </span>类型系统（typing/）<a class="headerlink" href="#typing" title="Link to this heading"></a></h1>
+<p>MindMemOS 的类型系统是整套架构的基石，约 3000 行 Pydantic 模型，划分为 7 个文件，
+<strong>不依赖任何数据库或 LLM 库</strong>。这种分层设计的核心原则是：</p>
+<p><strong>DTO 层零外部依赖</strong> — Pydantic 是唯一的第三方包，不 import <code class="docutils literal notranslate"><span class="pre">qdrant_client</span></code>、
+<code class="docutils literal notranslate"><span class="pre">neo4j</span></code>、<code class="docutils literal notranslate"><span class="pre">litellm</span></code> 或任何基础设施库。所有到数据库原语的转换都在 <code class="docutils literal notranslate"><span class="pre">mappers/</span></code> 中完成。</p>
+<section id="id1">
+<h2><span class="section-number">3.1. </span>类型分层<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>typing/
+├── memory.py     # 业务 DTO（Entity, MemoryWrite, SearchFilter...）
+├── memory_db.py  # 数据库操作 DTO（Query, WritePlan, Mutation...）
+├── service.py    # Pipeline I/O 合约（Input, Result）
+├── algo.py       # 算法中间 DTO（Chunk, Turn, SparseVector...）
+├── llm.py        # LLM 交互 DTO（ChatResponse, EmbeddingResponse）
+├── activity.py   # 活动记录 DTO（ActivityScope, RecentActivityBundle）
+└── skill.py      # Skill 管理 DTO（SkillBlob, SkillVersion...）
+</pre></div>
+</div>
+</section>
+<section id="memory-py">
+<h2><span class="section-number">3.2. </span><strong>memory.py</strong> — 业务核心<a class="headerlink" href="#memory-py" title="Link to this heading"></a></h2>
+<p>定义最关键的领域模型：</p>
+<section id="memorytype">
+<h3><span class="section-number">3.2.1. </span>内存类型 (MemoryType)<a class="headerlink" href="#memorytype" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">MemoryType</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span>
+    <span class="s2">&quot;profile&quot;</span><span class="p">,</span>      <span class="c1"># 用户画像（偏好、背景）</span>
+    <span class="s2">&quot;fact&quot;</span><span class="p">,</span>         <span class="c1"># 事实性记忆</span>
+    <span class="s2">&quot;experience&quot;</span><span class="p">,</span>   <span class="c1"># 经验性记忆</span>
+    <span class="s2">&quot;episodic&quot;</span><span class="p">,</span>     <span class="c1"># 情景记忆</span>
+    <span class="s2">&quot;tool_trace&quot;</span><span class="p">,</span>    <span class="c1"># 工具调用记录</span>
+    <span class="s2">&quot;skill_candidate&quot;</span><span class="p">,</span>  <span class="c1"># 可沉淀的 skill 候选</span>
+    <span class="s2">&quot;file_knowledge&quot;</span><span class="p">,</span>   <span class="c1"># 文件知识</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="graph-relationship">
+<h3><span class="section-number">3.2.2. </span>图关系标签 (Graph Relationship)<a class="headerlink" href="#graph-relationship" title="Link to this heading"></a></h3>
+<p>系统定义了 7 类 Neo4j 边：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">REL_HAS_PROPERTY_MEMORY</span>     <span class="o">=</span> <span class="s2">&quot;HAS_PROPERTY_MEMORY&quot;</span>       <span class="c1"># 实体→属性记忆</span>
+<span class="n">REL_NEXT_IN_PROPERTY_TIMELINE</span> <span class="o">=</span> <span class="s2">&quot;NEXT_IN_PROPERTY_TIMELINE&quot;</span> <span class="c1"># 属性时间线连接</span>
+<span class="n">REL_RELATES_TO</span>              <span class="o">=</span> <span class="s2">&quot;RELATES_TO&quot;</span>                <span class="c1"># 记忆间强关联</span>
+<span class="n">REL_RELATED_TO</span>              <span class="o">=</span> <span class="s2">&quot;RELATED_TO&quot;</span>                <span class="c1"># 记忆间弱关联</span>
+<span class="n">REL_MENTIONS</span>                <span class="o">=</span> <span class="s2">&quot;MENTIONS&quot;</span>                  <span class="c1"># 记忆→实体引用</span>
+<span class="n">REL_EXTRACTED_FROM</span>          <span class="o">=</span> <span class="s2">&quot;EXTRACTED_FROM&quot;</span>            <span class="c1"># 记忆→来源</span>
+<span class="n">REL_MENTIONED_IN_SOURCE</span>     <span class="o">=</span> <span class="s2">&quot;MENTIONED_IN_SOURCE&quot;</span>       <span class="c1"># 实体→来源</span>
+<span class="n">REL_DERIVED_FROM</span>            <span class="o">=</span> <span class="s2">&quot;DERIVED_FROM&quot;</span>              <span class="c1"># 记忆版本衍化</span>
+</pre></div>
+</div>
+</section>
+<section id="searchfilter-dsl">
+<h3><span class="section-number">3.2.3. </span>SearchFilter — 查询过滤器 DSL<a class="headerlink" href="#searchfilter-dsl" title="Link to this heading"></a></h3>
+<p>提供类似 Qdrant 的布尔过滤树，但完全独立于 <code class="docutils literal notranslate"><span class="pre">qdrant_client</span></code> 类型：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">SearchFilter</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">must</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FieldCondition</span> <span class="o">|</span> <span class="n">SearchFilter</span><span class="p">]</span>
+    <span class="n">should</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FieldCondition</span> <span class="o">|</span> <span class="n">SearchFilter</span><span class="p">]</span>
+    <span class="n">must_not</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FieldCondition</span> <span class="o">|</span> <span class="n">SearchFilter</span><span class="p">]</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">FieldCondition</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">field</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">op</span><span class="p">:</span> <span class="n">FilterOp</span>  <span class="c1"># match | any | except | text | range | datetime | is_empty | is_null</span>
+    <span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">gt</span> <span class="o">/</span> <span class="n">gte</span> <span class="o">/</span> <span class="n">lt</span> <span class="o">/</span> <span class="n">lte</span><span class="p">:</span> <span class="o">...</span>
+</pre></div>
+</div>
+<p>通过 <code class="docutils literal notranslate"><span class="pre">DSL_FILTERABLE_MEMORY_FIELDS</span></code> 白名单限制用户可过滤的字段。</p>
+</section>
+<section id="memorywrite-dto">
+<h3><span class="section-number">3.2.4. </span>MemoryWrite — 存储写 DTO<a class="headerlink" href="#memorywrite-dto" title="Link to this heading"></a></h3>
+<p>写入时的完整 payload 定义：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MemoryWrite</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">memory_id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">account_id</span> <span class="o">/</span> <span class="n">project_id</span> <span class="o">/</span> <span class="n">api_key_uuid</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># 多租户隔离</span>
+    <span class="n">user_id</span> <span class="o">/</span> <span class="n">app_id</span> <span class="o">/</span> <span class="n">session_id</span> <span class="o">/</span> <span class="n">agent_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>  <span class="c1"># 身份维度</span>
+    <span class="n">content</span><span class="p">:</span> <span class="nb">str</span>                         <span class="c1"># 记忆文本</span>
+    <span class="n">mem_type</span><span class="p">:</span> <span class="n">MemoryType</span> <span class="o">=</span> <span class="s2">&quot;fact&quot;</span>        <span class="c1"># 记忆类型</span>
+    <span class="n">mem_extract_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;vanilla&quot;</span>    <span class="c1"># 提取算法标识</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span>                       <span class="c1"># {content_hash, bm25_text, tokens, lang, ...}</span>
+    <span class="n">validate_from</span> <span class="o">/</span> <span class="n">validate_to</span><span class="p">:</span> <span class="n">datetime</span><span class="o">|</span><span class="kc">None</span>  <span class="c1"># 时效窗口</span>
+    <span class="n">status</span><span class="p">:</span> <span class="n">MemoryStatus</span> <span class="o">=</span> <span class="s2">&quot;active&quot;</span>       <span class="c1"># active | archived | delete</span>
+    <span class="n">reinforcement_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>         <span class="c1"># 强化计数</span>
+    <span class="n">parent_ids</span> <span class="o">/</span> <span class="n">root_id</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>      <span class="c1"># 版本链追踪</span>
+    <span class="n">property_name</span> <span class="o">/</span> <span class="n">entity_id</span> <span class="o">/</span> <span class="n">entity_type</span><span class="p">:</span> <span class="nb">str</span><span class="o">|</span><span class="kc">None</span>  <span class="c1"># schema 关联</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="service-py-pipeline">
+<h2><span class="section-number">3.3. </span><strong>service.py</strong> — Pipeline 合约<a class="headerlink" href="#service-py-pipeline" title="Link to this heading"></a></h2>
+<p>定义 Pipeline 的输入输出模型。例如 AddPipelineInput：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">AddPipelineInput</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DialogueMessage</span> <span class="o">|</span> <span class="n">UrlMessage</span> <span class="o">|</span> <span class="n">FileMessage</span> <span class="o">|</span> <span class="n">TextMessage</span><span class="p">]</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="n">AddMode</span> <span class="o">=</span> <span class="s2">&quot;sync&quot;</span>        <span class="c1"># sync | async</span>
+    <span class="n">force_generation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">AddPipelineSyncResult</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">status</span><span class="p">:</span> <span class="n">ServiceResultStatus</span>    <span class="c1"># ok | error | queued</span>
+    <span class="n">memories</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemoryAddEventItem</span><span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="algo-py-dto">
+<h2><span class="section-number">3.4. </span><strong>algo.py</strong> — 算法中间 DTO<a class="headerlink" href="#algo-py-dto" title="Link to this heading"></a></h2>
+<p>包含 chunk 化、抽取、反馈等算法阶段的中间产物：</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Turn</span></code> / <code class="docutils literal notranslate"><span class="pre">Chunk</span></code> / <code class="docutils literal notranslate"><span class="pre">ExtractionEnvelope</span></code> — 对话分割与打包</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ConsolidationAction</span></code> / <code class="docutils literal notranslate"><span class="pre">ConsolidationCreate</span></code> / <code class="docutils literal notranslate"><span class="pre">ConsolidationMerge</span></code> — Dreaming 动作</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SparseVector</span></code> / <code class="docutils literal notranslate"><span class="pre">BM25TokenizationResult</span></code> — 稀疏检索中间结果</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ImplicitFeedbackSignal</span></code> — 隐式反馈信号</p></li>
+</ul>
+</section>
+<section id="memory-db-py-dto">
+<h2><span class="section-number">3.5. </span><strong>memory_db.py</strong> — 数据库操作 DTO<a class="headerlink" href="#memory-db-py-dto" title="Link to this heading"></a></h2>
+<p>定义了数据库层操作的原语：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MemoryDbSearchQuery</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">query</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">top_k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">filters</span><span class="p">:</span> <span class="n">SearchFilter</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="n">SearchMode</span>         <span class="c1"># semantic | bm25 | rrf | graph | hybrid</span>
+    <span class="n">ranking</span><span class="p">:</span> <span class="n">RankingMode</span>     <span class="c1"># none | score | hybrid</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MemoryDbMutationPlan</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">memories</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemoryDbMemoryWriteCommand</span><span class="p">]</span>
+    <span class="n">entities</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemoryDbEntityWriteCommand</span><span class="p">]</span>
+    <span class="n">updates</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemoryDbMemoryUpdateCommand</span><span class="p">]</span>
+    <span class="n">deletes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemoryDbDeleteCommand</span><span class="p">]</span>
+    <span class="n">relationships</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemoryDbRelationshipWriteCommand</span><span class="p">]</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="02-arch-overview.html" class="btn btn-neutral float-left" title="2. 系统架构总览" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="04-pipeline-system.html" class="btn btn-neutral float-right" title="4. Pipeline 体系总览" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, mindscale-noah.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
