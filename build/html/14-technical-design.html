@@ -1,0 +1,1206 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>14. MindMemOS 技术设计理念与模块深度解析 &mdash; MindMemOS 技术深度解析</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="13. 部署与配置" href="13-deployment.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            MindMemOS 技术解析
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">目录</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="01-intro.html">1. 项目概述</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02-arch-overview.html">2. 系统架构总览</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03-typing-system.html">3. 类型系统（typing/）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04-pipeline-system.html">4. Pipeline 体系总览</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05-add-pipeline.html">5. Add Pipeline — 记忆写入</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06-search-pipeline.html">6. Search Pipeline — 记忆检索</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07-dreaming-pipeline.html">7. Dreaming Pipeline — 离线记忆巩固</a></li>
+<li class="toctree-l1"><a class="reference internal" href="08-feedback-pipeline.html">8. Feedback Pipeline — 在线反馈修正</a></li>
+<li class="toctree-l1"><a class="reference internal" href="09-components.html">9. 核心组件详解</a></li>
+<li class="toctree-l1"><a class="reference internal" href="10-infrastructure.html">10. 基础设施层</a></li>
+<li class="toctree-l1"><a class="reference internal" href="11-integration.html">11. 集成方式</a></li>
+<li class="toctree-l1"><a class="reference internal" href="12-benchmark.html">12. Benchmark 与性能</a></li>
+<li class="toctree-l1"><a class="reference internal" href="13-deployment.html">13. 部署与配置</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">14. MindMemOS 技术设计理念与模块深度解析</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#id2">15. 第一部分：总体设计理念</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id3">15.1. 1.1 核心设计原则</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id4">15.1.1. 1.1.1 分层隔离，契约驱动</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#protocol">15.1.2. 1.1.2 Protocol 优先，而非继承</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">15.1.3. 1.1.3 注册表模式——字符串路由</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#di">15.1.4. 1.1.4 构造函数注入（DI）</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id6">15.2. 1.2 三层记忆模型</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#id7">16. 第二部分：模块级设计深度解析</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#typing-dto">16.1. 2.1 typing/ — DTO 契约层</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id8">16.1.1. 文件结构</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id9">16.1.2. 核心设计决策</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#config">16.2. 2.2 config/ — 分层配置系统</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#infra-db">16.3. 2.3 infra/db/ — 双存储引擎</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#llm-llm">16.4. 2.4 llm/ — LLM 抽象层</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#components">16.5. 2.5 components/ — 算法组件库</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#components-text">16.5.1. 2.5.1 components/text/ — 文本处理流水线</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#components-chunker">16.5.2. 2.5.2 components/chunker/ — 对话结构化</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#components-extractor">16.5.3. 2.5.3 components/extractor/ — 记忆提取</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#components-searcher">16.5.4. 2.5.4 components/searcher/ — 检索组件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#components-dreaming">16.5.5. 2.5.5 components/dreaming/ — 离线记忆演化</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#components-feedback">16.5.6. 2.5.6 components/feedback/ — 在线学习</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#components-skill-skill">16.5.7. 2.5.7 components/skill/ — Skill 系统</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pipelines-pipeline">16.6. 2.6 pipelines/ — Pipeline 编排层</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pipeline">16.6.1. 2.6.1 Pipeline 注册表</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#add-pipeline">16.6.2. 2.6.2 Add Pipeline 家族</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#search-pipeline">16.6.3. 2.6.3 Search Pipeline 家族</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#memorydbreader-memorydbwriter">16.6.4. 2.6.4 MemoryDbReader / MemoryDbWriter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#agentic-search">16.6.5. 2.6.5 Agentic Search — 多轮推理</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#api">16.7. 2.7 api/ — 路由层</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#workers-kafka">16.8. 2.8 workers/ — Kafka 消费者</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mappers">16.9. 2.9 mappers/ — 类型转换桥梁</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#id10">17. 第三部分：关键设计权衡与反思</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#rag">17.1. 3.1 为什么不用纯 RAG？</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id11">17.2. 3.2 架构复杂度值不值？</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id12">17.3. 3.3 从代码中看出的后续方向</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#a">18. 附录 A：文件统计</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MindMemOS 技术解析</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">14. </span>MindMemOS 技术设计理念与模块深度解析</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/14-technical-design.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="mindmemos">
+<h1><span class="section-number">14. </span>MindMemOS 技术设计理念与模块深度解析<a class="headerlink" href="#mindmemos" title="Link to this heading"></a></h1>
+<style>
+.design-principle { background: #f0f8ff; padding: 12px; border-left: 4px solid #1e90ff; margin: 12px 0; }
+.arch-decision { background: #fff8f0; padding: 12px; border-left: 4px solid #ff8c00; margin: 12px 0; }
+.code-insight { background: #f0fff0; padding: 12px; border-left: 4px solid #228b22; margin: 12px 0; }
+</style></section>
+<section id="id2">
+<h1><span class="section-number">15. </span>第一部分：总体设计理念<a class="headerlink" href="#id2" title="Link to this heading"></a></h1>
+<p>MindMemOS 不只是一个”给 Agent 加记忆”的工具库，而是一套**完整的记忆操作系统**
+——它有自己明确的架构哲学、分层契约和演化机制。</p>
+<section id="id3">
+<h2><span class="section-number">15.1. </span>1.1 核心设计原则<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<section id="id4">
+<h3><span class="section-number">15.1.1. </span>1.1.1 分层隔离，契约驱动<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>整个系统遵循严格的**单向依赖**原则：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>API (路由层)           ← 依赖 pipelines + typing
+   │
+Pipelines (编排层)     ← 依赖 components + typing
+   │
+Components (算法层)    ← 依赖 typing (纯 DTO)
+   │
+Infra (基础设施层)     ← Qdrant / Neo4j / Kafka 具体实现
+</pre></div>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">设计原则</p>
+<p><strong>原则一：typing/ 包零外部依赖</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">mindmemos/typing/</span></code> 中的 Pydantic 模型不 import 任何数据库客户端
+（<code class="docutils literal notranslate"><span class="pre">qdrant_client</span></code>、<code class="docutils literal notranslate"><span class="pre">neo4j</span></code>）、LLM 库（<code class="docutils literal notranslate"><span class="pre">litellm</span></code>）或序列化框架。
+这是整套架构的基石——类型定义是”契约”，不是”实现”。</p>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">设计原则</p>
+<p><strong>原则二：Pipeline 是编排器，不是执行器</strong></p>
+<p>pipelines/ 中的每个 Pipeline 只做三件事：
+1. 接收输入 DTO
+2. 按阶段调用 components/
+3. 返回输出 DTO</p>
+<p>Pipeline 不包含任何算子实现。算子全在 components/ 中。这使得 Pipeline
+可以被完整替换而不动算法，算法可以被单独测试而不动编排逻辑。</p>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">设计原则</p>
+<p><strong>原则三：mappers/ 是唯一的类型转换桥梁</strong></p>
+<p>DTO 层（typing/）和数据库原语（Qdrant PointStruct / Neo4j Cypher）
+之间的所有转换都在 mappers/ 中完成。这保证了：
+- 数据库层可以独立升级（Qdrant API 变化只影响 mapper）
+- 业务模型变化不影响存储结构
+- 类型错误在 mapper 边界被捕获，不会渗透到业务逻辑中</p>
+</div>
+</section>
+<section id="protocol">
+<h3><span class="section-number">15.1.2. </span>1.1.2 Protocol 优先，而非继承<a class="headerlink" href="#protocol" title="Link to this heading"></a></h3>
+<p>MindMemOS 大量使用 Python <code class="docutils literal notranslate"><span class="pre">Protocol</span></code> 定义接口契约，而非抽象基类：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">AddPipeline</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">add_sync</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inp</span><span class="p">:</span> <span class="n">AddPipelineInput</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">MemoryRequestContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AddPipelineSyncResult</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">add_async</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inp</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AddPipelineAsyncResult</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">SearchEngine</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">search_candidates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inp</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">MemorySearchItem</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">架构决策</p>
+<p><strong>为什么用 Protocol？</strong></p>
+<ol class="arabic simple">
+<li><p><strong>结构子类型化</strong>：只要对象有对应方法签名，就自动满足协议，不需要显式
+继承或注册。这让测试 mock 极其简单。</p></li>
+<li><p><strong>依赖倒置</strong>：调用方依赖 Protocol（抽象），而非具体类。Pipeline 切换
+引擎时，只要新引擎实现了 Protocol，零改动。</p></li>
+<li><p><strong>编译期检查</strong>：mypy/pyright 会在传入不符合 Protocol 的对象时报错。</p></li>
+</ol>
+</div>
+</section>
+<section id="id5">
+<h3><span class="section-number">15.1.3. </span>1.1.3 注册表模式——字符串路由<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<p>不同 Pipeline 实现通过 <code class="docutils literal notranslate"><span class="pre">pipelines/registry.py</span></code> 的 <code class="docutils literal notranslate"><span class="pre">&#64;register</span></code> 装饰器注册：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@register</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;add&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;vanilla_add&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VanillaAddPipeline</span><span class="p">(</span><span class="n">MemoryDbPipelineMixin</span><span class="p">):</span> <span class="o">...</span>
+
+<span class="nd">@register</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;search&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;vanilla_search_engine&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VanillaSearchEngine</span><span class="p">(</span><span class="n">MemoryDbPipelineMixin</span><span class="p">):</span> <span class="o">...</span>
+</pre></div>
+</div>
+<p>运行时通过配置字符串（如 <code class="docutils literal notranslate"><span class="pre">search_pipeline:</span> <span class="pre">&quot;vanilla&quot;</span></code>）选择实现。</p>
+<div class="admonition- admonition">
+<p class="admonition-title">架构决策</p>
+<p><strong>为什么不用 import 时直接硬编码？</strong></p>
+<ol class="arabic simple">
+<li><p><strong>热切换能力</strong>：配置驱动的 Pipeline 选择允许在不同环境（dev/prod）
+使用不同策略，或在 A/B 测试中并行运行。</p></li>
+<li><p><strong>Schema 模式可插拔</strong>：vanilla 和 schema 是两套完全不同的 add pipeline，
+通过 <code class="docutils literal notranslate"><span class="pre">algo_config.add.vanilla.enable_schema</span></code> 切换，无需代码修改。</p></li>
+<li><p><strong>测试友好</strong>：测试用例可以注册 mock pipeline 而不用修改生产代码。</p></li>
+</ol>
+</div>
+</section>
+<section id="di">
+<h3><span class="section-number">15.1.4. </span>1.1.4 构造函数注入（DI）<a class="headerlink" href="#di" title="Link to this heading"></a></h3>
+<p>所有 Pipeline 和 Component 的依赖通过构造函数传入：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">VanillaAddPipeline</span><span class="p">(</span><span class="n">MemoryDbPipelineMixin</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">text_preprocessor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">memory_extractor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">candidate_deduplicator</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">related_memory_recall</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">safety_gate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vectorizer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">llm_client</span><span class="o">=</span><span class="n">_CLIENT_UNSET</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
+        <span class="c1"># 未传入时使用默认实现</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_text_preprocessor</span> <span class="o">=</span> <span class="n">text_preprocessor</span> <span class="ow">or</span> <span class="n">get_text_preprocessor</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_llm_client</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_llm</span><span class="p">(</span><span class="n">llm_client</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">架构决策</p>
+<p><strong>设计意图</strong>：</p>
+<ul class="simple">
+<li><p><strong>可测试性</strong>：每个组件可独立 mock 替换</p></li>
+<li><p><strong>可选默认值</strong>：未显式注入时自动使用全局单例，降低使用成本</p></li>
+<li><p><strong>延迟解析</strong>：<code class="docutils literal notranslate"><span class="pre">_CLIENT_UNSET</span></code> 哨兵值表示”未设置”，在构造函数内部
+才尝试解析全局 LLM client。这使 Pipeline 可在 LLM 未初始化时就创建。</p></li>
+</ul>
+</div>
+</section>
+</section>
+<section id="id6">
+<h2><span class="section-number">15.2. </span>1.2 三层记忆模型<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<p>MindMemOS 将记忆分为三个层次，分别对应不同的处理路径：</p>
+<table class="docutils align-default" id="id13">
+<caption><span class="caption-text">三层记忆架构</span><a class="headerlink" href="#id13" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>层次</p></th>
+<th class="head"><p>存储维度</p></th>
+<th class="head"><p>处理 Pipeline</p></th>
+<th class="head"><p>典型场景</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>L1: Flat Memory</p></td>
+<td><p>Qdrant (向量 + 负载)</p></td>
+<td><p>DefaultAddPipeline / VanillaAddPipeline</p></td>
+<td><p>事实记忆、对话片段</p></td>
+</tr>
+<tr class="row-odd"><td><p>L2: Schema Memory</p></td>
+<td><p>Qdrant + Neo4j (实体-属性-时间线)</p></td>
+<td><p>SchemaAddPipeline + SchemaDrain 异步流</p></td>
+<td><p>用户画像、偏好演化</p></td>
+</tr>
+<tr class="row-even"><td><p>L3: Consolidation Memory</p></td>
+<td><p>Dreaming Pipeline (离线演化)</p></td>
+<td><p>LLM 驱动的合并/更新/归档</p></td>
+<td><p>知识蒸馏、冗余消除</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition- admonition">
+<p class="admonition-title">架构决策</p>
+<p><strong>为什么要三层？</strong></p>
+<p>简单方案（如 Mem0）只有 L1：写入→向量化→检索。这在对话记忆上表现尚可，
+但无法处理”用户的偏好随时间变化”这类复杂场景。L2 通过实体-属性建模解决
+“用户 X 的咖啡偏好从冰美式变成了拿铁”这类时间线追踪。L3 则通过离线
+Dreaming 解决”大量碎片化记忆怎么自动合并成精炼知识”的问题。</p>
+</div>
+</section>
+</section>
+<section id="id7">
+<h1><span class="section-number">16. </span>第二部分：模块级设计深度解析<a class="headerlink" href="#id7" title="Link to this heading"></a></h1>
+<section id="typing-dto">
+<h2><span class="section-number">16.1. </span>2.1 typing/ — DTO 契约层<a class="headerlink" href="#typing-dto" title="Link to this heading"></a></h2>
+<section id="id8">
+<h3><span class="section-number">16.1.1. </span>文件结构<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>typing/
+├── memory.py      # 495行 — 核心业务模型（MemoryWrite, Entity, SearchFilter...）
+├── memory_db.py   # 433行 — 数据库操作 DTO（MemoryDbWritePlan, MutationPlan...）
+├── service.py     # 395行 — Pipeline I/O 合约（Input, Result）
+├── algo.py        # 491行 — 算法中间 DTO（Turn, Chunk, ExtractionEnvelope...）
+├── activity.py    # 178行 — 活动记录 DTO（ConversationActivity, RecentActivityBundle）
+├── llm.py         #  36行 — LLM 交互 DTO（ChatResponse, EmbeddingResponse）
+└── skill.py       # 256行 — Skill 版本管理 DTO
+</pre></div>
+</div>
+</section>
+<section id="id9">
+<h3><span class="section-number">16.1.2. </span>核心设计决策<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<p><strong>memory.py vs memory_db.py 分离</strong></p>
+<p>这是 MindMemOS 最微妙的设计决策之一：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>memory.py (业务层)          memory_db.py (存储操作层)
+──────────────────────    ──────────────────────────
+MemoryWrite               MemoryDbWritePlan
+Entity                    MemoryDbSearchQuery
+SearchFilter              MemoryDbSearchHit
+MemoryView                MemoryDbMutationPlan
+GraphRelationship         MemoryDbMemoryWriteCommand
+</pre></div>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">架构决策</p>
+<p><strong>分离理由</strong>：</p>
+<ol class="arabic simple">
+<li><p><strong>关注点分离</strong>：memory.py 描述”记忆是什么”，memory_db.py 描述
+“怎么操作数据库”。同一份业务数据（MemoryWrite）可以有不同的存储操作
+（写入、更新、删除）。</p></li>
+<li><p><strong>防止泄漏</strong>：如果 MemoryWrite 直接可被 MutationPlan 使用，业务逻辑
+就可能绕过 mutation 语义检查直接写 DB。中间的 MemoryDb*Command 层
+强制执行操作类型（upsert/patch/delete）。</p></li>
+<li><p><strong>演化自由度</strong>：添加新的存储后端（如 PostgreSQL）只需新增
+MemoryDb*Command 映射，不影响现有业务模型。</p></li>
+</ol>
+</div>
+<p><strong>SearchFilter — 与 Qdrant 解耦的过滤器 DSL</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">SearchFilter</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">must</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FieldCondition</span> <span class="o">|</span> <span class="n">SearchFilter</span><span class="p">]</span>
+    <span class="n">should</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FieldCondition</span> <span class="o">|</span> <span class="n">SearchFilter</span><span class="p">]</span>
+    <span class="n">must_not</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FieldCondition</span> <span class="o">|</span> <span class="n">SearchFilter</span><span class="p">]</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">FieldCondition</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">field</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">op</span><span class="p">:</span> <span class="n">FilterOp</span>  <span class="c1"># match | any | except | text | range | datetime | is_empty | is_null</span>
+    <span class="n">value</span> <span class="o">/</span> <span class="n">values</span> <span class="o">/</span> <span class="n">gt</span> <span class="o">/</span> <span class="n">gte</span> <span class="o">/</span> <span class="n">lt</span> <span class="o">/</span> <span class="n">lte</span><span class="p">:</span> <span class="o">...</span>
+</pre></div>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">代码洞察</p>
+<p>这套 Filter 系统完全模仿 Qdrant 的 bool filter 结构，但**不依赖**
+<code class="docutils literal notranslate"><span class="pre">qdrant_client</span></code> 包。转换由 <code class="docutils literal notranslate"><span class="pre">mappers/search_filters.py</span></code> 完成。</p>
+<p>这么做的原因：Qdrant 的 Filter 模型有大量细碎的 import 依赖
+（<code class="docutils literal notranslate"><span class="pre">qdrant_client.models.FieldCondition</span></code>、<code class="docutils literal notranslate"><span class="pre">qdrant_client.models.MatchValue</span></code>…），
+如果 typing/ 层直接依赖它们，任何想使用 MemoryDTO 的客户端都必须安装
+<code class="docutils literal notranslate"><span class="pre">qdrant_client</span></code>。现在的设计让 SDK 用户可以只用 <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">mindmemos-sdk</span></code>
+就完成 DTO 操作。</p>
+</div>
+<p><strong>关系常量集中管理</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">REL_HAS_PROPERTY_MEMORY</span>     <span class="o">=</span> <span class="s2">&quot;HAS_PROPERTY_MEMORY&quot;</span>
+<span class="n">REL_NEXT_IN_PROPERTY_TIMELINE</span> <span class="o">=</span> <span class="s2">&quot;NEXT_IN_PROPERTY_TIMELINE&quot;</span>
+<span class="n">REL_RELATES_TO</span>              <span class="o">=</span> <span class="s2">&quot;RELATES_TO&quot;</span>
+<span class="n">REL_RELATED_TO</span>              <span class="o">=</span> <span class="s2">&quot;RELATED_TO&quot;</span>
+<span class="n">REL_MENTIONS</span>                <span class="o">=</span> <span class="s2">&quot;MENTIONS&quot;</span>
+<span class="n">REL_EXTRACTED_FROM</span>          <span class="o">=</span> <span class="s2">&quot;EXTRACTED_FROM&quot;</span>
+<span class="n">REL_MENTIONED_IN_SOURCE</span>     <span class="o">=</span> <span class="s2">&quot;MENTIONED_IN_SOURCE&quot;</span>
+<span class="n">REL_DERIVED_FROM</span>            <span class="o">=</span> <span class="s2">&quot;DERIVED_FROM&quot;</span>
+</pre></div>
+</div>
+<p>所有图边类型在 <code class="docutils literal notranslate"><span class="pre">typing/memory.py</span></code> 中集中定义为字符串常量，而非分散在
+各个 mappers/pipelines/中硬编码。这避免了”Neo4j 里的边类型拼错”这类低级的
+运行时错误。</p>
+<p><strong>Turn 和 Chunk — 对话结构化的中间表示</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TurnMessageRef</span><span class="p">:</span>     <span class="c1"># 一条消息的元信息</span>
+    <span class="n">text</span><span class="p">,</span> <span class="n">role</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">message_index</span><span class="p">,</span> <span class="n">is_extractable</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Turn</span><span class="p">:</span>               <span class="c1"># 一组消息形成一个&quot;对话回合&quot;</span>
+    <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">TurnMessageRef</span><span class="p">]</span>
+    <span class="n">boundary</span><span class="p">:</span> <span class="n">TurnBoundary</span>        <span class="c1"># complete | open_head | open_tail | orphan</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Chunk</span><span class="p">:</span>              <span class="c1"># 发送给 LLM 提取的 token 预算单位</span>
+    <span class="n">turns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Turn</span><span class="p">]</span>
+    <span class="n">boundary</span><span class="p">:</span> <span class="n">ChunkBoundary</span>
+    <span class="n">token_count</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">needs_compaction</span><span class="p">:</span> <span class="nb">bool</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ExtractionEnvelope</span><span class="p">:</span> <span class="c1"># LLM 提取的结构化上下文</span>
+    <span class="n">extractable_messages</span>      <span class="c1"># 可提取证据</span>
+    <span class="n">current_context_messages</span>  <span class="c1"># 不可提取的上下文</span>
+    <span class="n">history</span><span class="p">:</span> <span class="n">HistoryPack</span>      <span class="c1"># 跨 chunk 历史窗口</span>
+    <span class="n">recalled_memories</span>         <span class="c1"># 相关记忆召回</span>
+    <span class="n">boundary</span>                  <span class="c1"># 边界类型</span>
+</pre></div>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">架构决策</p>
+<p><strong>为什么引入 Turn 和 Chunk？</strong></p>
+<p>原始 AddPipeline（DefaultAddPipeline）直接逐条文本提取，没有对话结构概念。
+但对于真实的 Agent 对话，需要：</p>
+<ol class="arabic simple">
+<li><p><strong>识别对话边界</strong>：用户说”帮我查天气”→ 助手回复”今天25度”是一个
+Turn；连续的用户消息（没有助手回复）则是 open_tail。</p></li>
+<li><p><strong>控制 token 预算</strong>：一个对话可能数百轮，不能全部塞进一个 LLM 调用。
+Chunk 是 token 预算的硬边界。</p></li>
+<li><p><strong>历史滑动窗口</strong>：Chunk N 可以看到 Chunk N-1 的历史摘要，但不需要
+全部原始文本。</p></li>
+<li><p><strong>边界感知</strong>：open_tail 的 chunk 不应被视为完整对话，extractor 要在
+指令中明确说明保守程度。</p></li>
+</ol>
+</div>
+</section>
+</section>
+<section id="config">
+<h2><span class="section-number">16.2. </span>2.2 config/ — 分层配置系统<a class="headerlink" href="#config" title="Link to this heading"></a></h2>
+<p>MindMemOS 的配置系统有四个层次：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>层次 0: 默认值（代码硬编码）
+层次 1: YAML 配置文件（config/mindmemos/dev.yaml）
+层次 2: 环境变量覆盖（MINDMEMOS_* 系列）
+层次 3: 请求级覆盖（tenant_config/project_config，通过 update_config()）
+</pre></div>
+</div>
+<p><strong>OmegaConf 结构化配置</strong></p>
+<p>使用 OmegaConf 将 YAML 映射到 <code class="docutils literal notranslate"><span class="pre">&#64;dataclass</span></code> 结构体：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MemoryConfig</span><span class="p">:</span>
+    <span class="n">database</span><span class="p">:</span> <span class="n">DatabaseConfig</span>
+    <span class="n">kafka</span><span class="p">:</span> <span class="n">KafkaConfig</span>
+    <span class="n">telemetry</span><span class="p">:</span> <span class="n">TelemetryConfig</span>
+    <span class="n">algo_config</span><span class="p">:</span> <span class="n">MemoryAlgoConfig</span>
+</pre></div>
+</div>
+<p>算法的配置按 pipeline 分组：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>algo_config
+├── common                       # 共享（prompt_language）
+├── text_processing              # 文本预处理（spaCy 模型、BM25 参数、hash 维度）
+├── add
+│   ├── vanilla                  # 6 阶段 pipeline 参数（token budget、recall、safety gate）
+│   └── schema                   # Schema 模式参数（chunker、drain、extraction、merge）
+├── search
+│   ├── default                  # BM25 检索
+│   ├── vanilla                  # 混合检索（dense+sparse+graph）
+│   ├── schema_search            # Schema 检索（entity/property）
+│   └── agentic                  # 多轮推理检索
+├── dreaming                     # 离线巩固（lookback_days、concurrency）
+└── skill_evolution              # Skill 演化
+</pre></div>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">代码洞察</p>
+<p><strong>text_processing 是 frozen 字段</strong></p>
+<p>在 <code class="docutils literal notranslate"><span class="pre">MemoryAlgoConfig</span></code> 中：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">text_processing</span><span class="p">:</span> <span class="n">TextProcessingConfig</span> <span class="o">=</span> <span class="n">frozen_field</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">frozen_field</span></code> 意味着该配置项的 tenant/project 级覆盖被禁止。原因是
+<code class="docutils literal notranslate"><span class="pre">TextPreprocessor</span></code> 共享全局的 spaCy 模型和 hash 状态，不可能为每个
+请求切换不同的配置。这是一个安全边界：防止用户通过 API 参数意外重载
+文本预处理行为。</p>
+</div>
+</section>
+<section id="infra-db">
+<h2><span class="section-number">16.3. </span>2.3 infra/db/ — 双存储引擎<a class="headerlink" href="#infra-db" title="Link to this heading"></a></h2>
+<p>MindMemOS 采用 <strong>Qdrant + Neo4j 双引擎</strong> 架构，各有明确职责：</p>
+<table class="docutils align-default" id="id14">
+<caption><span class="caption-text">存储引擎分工</span><a class="headerlink" href="#id14" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>能力</p></th>
+<th class="head"><p>Qdrant</p></th>
+<th class="head"><p>Neo4j</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>向量检索</p></td>
+<td><p>Dense + Sparse 混合检索</p></td>
+<td><p>（不支持）</p></td>
+</tr>
+<tr class="row-odd"><td><p>负载持久化</p></td>
+<td><p>全量 payload 存储</p></td>
+<td><p>（不支持）</p></td>
+</tr>
+<tr class="row-even"><td><p>实体去重</p></td>
+<td><p>通过 payload 过滤</p></td>
+<td><p>Node key 约束（确定性）</p></td>
+</tr>
+<tr class="row-odd"><td><p>关系遍历</p></td>
+<td><p>不支持 N 跳遍历</p></td>
+<td><p>MEMORY→ENTITY→MEMORY 图遍历</p></td>
+</tr>
+<tr class="row-even"><td><p>写入一致性</p></td>
+<td><p>fast / strong 两种模式</p></td>
+<td><p>ACID 事务</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition- admonition">
+<p class="admonition-title">架构决策</p>
+<p><strong>为什么不只用其中一种？</strong></p>
+<ul class="simple">
+<li><p>只用 Qdrant：无法做语义关系推理。”找到喜欢冰美式的用户”是向量搜索，
+但”找和 X 用户偏好相似的用户”需要图遍历。</p></li>
+<li><p>只用 Neo4j：向量检索需要第三方插件（neo4j-vector），且稀疏向量
+（BM25 hash-trick）支持不成熟。</p></li>
+</ul>
+<p>双引擎的代价是**写入一致性维护**：一次 add 操作需要协调 Qdrant upsert
+和 Neo4j MERGE。<code class="docutils literal notranslate"><span class="pre">consistency</span></code> 参数控制行为：
+- <code class="docutils literal notranslate"><span class="pre">fast</span></code>：先写 Qdrant，Neo4j 异步写入。检索可能出现图结果延迟。
+- <code class="docutils literal notranslate"><span class="pre">strong</span></code>：两者在一个事务语义中完成。代价是吞吐下降。</p>
+</div>
+<p><strong>Qdrant 引擎设计</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>QdrantEngine (轻量级封装)
+├── ensure_collection()       # 自动创建 collection 和 payload index
+├── upsert/retrieve/scroll/query/delete/batch_update
+├── project_filter()          # 强制注入 project_id 条件
+├── safe_payload()            # 递归转换 datetime/dict/list 为 Qdrant 安全类型
+└── _batch_writer             # 可选批量写入器
+
+Collection 结构 (6 个):
+├── memory_item_v1            # 记忆点 (dense + sparse 向量 + payload)
+├── entity_item_v1            # 实体点 (同上)
+├── source_item_v1            # 来源点 (仅 payload)
+├── add_record_v1             # 写入审计记录 (仅 payload)
+├── search_record_v1          # 检索审计记录 (仅 payload)
+└── schema_add_buffer_v1      # Schema 写入缓冲区 (仅 payload)
+</pre></div>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">代码洞察</p>
+<p><strong>project_id 硬隔离</strong></p>
+<p>每个 Qdrant 查询都通过 <code class="docutils literal notranslate"><span class="pre">project_filter()</span></code> 强制注入 <code class="docutils literal notranslate"><span class="pre">project_id</span></code> 条件，
+且该条件是 <code class="docutils literal notranslate"><span class="pre">must</span></code> 列表的第一项。这样即使 API 层忘记传 filter，
+数据也不会跨项目泄露。</p>
+<p><strong>QdrantBatchWriter 设计</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">QdrantBatchWriter</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">upsert_fn</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">flush_interval_ms</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_buffer</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">PointStruct</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flush_task</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">upsert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">collection</span><span class="p">,</span> <span class="n">points</span><span class="p">):</span>
+        <span class="c1"># 加入缓冲区 → 达到 batch_size 则立即 flush</span>
+        <span class="c1"># 否则等待 flush_interval 超时后批量 flush</span>
+</pre></div>
+</div>
+<p>批量写入器在写入压力大时将多次小 upsert 合并为一次大 upsert，减少
+HTTP 往返和 Qdrant WAL 压力。</p>
+</div>
+<p><strong>Neo4j 引擎设计</strong></p>
+<p>Neo4jStore 专注于**关系操作**，不分担负载存储：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>MEMORY(project_id, memory_id)        # 节点属性：content, status
+   │
+   ├─[:MENTIONS]→ ENTITY(project_id, entity_id)   # 记忆→实体
+   ├─[:EXTRACTED_FROM]→ SOURCE(...)                # 记忆→来源
+   ├─[:RELATES_TO|RELATED_TO]→ MEMORY              # 记忆→记忆
+   ├─[:HAS_PROPERTY_MEMORY]→ MEMORY                # Schema 属性关联
+   └─[:NEXT_IN_PROPERTY_TIMELINE]→ MEMORY          # 属性时间线
+</pre></div>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">代码洞察</p>
+<p>所有 Neo4j 查询的核心模式是**图邻居扩展**：</p>
+<p>查询入口：匹配候选记忆 → 通过 MENTIONS 找到关联实体 →
+通过实体反向 MENTIONS 找到更多记忆 → 通过 RELATES_TO 找到直接邻居
+→ RRF 融合所有候选</p>
+</div>
+</section>
+<section id="llm-llm">
+<h2><span class="section-number">16.4. </span>2.4 llm/ — LLM 抽象层<a class="headerlink" href="#llm-llm" title="Link to this heading"></a></h2>
+<p>LLM 抽象层基于 liteLLM，但增加了业务语义封装：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>LLMClient (chat.py)
+├── chat(task, messages, format_parser) -&gt; ChatResponse
+│   - task: 用于追踪和日志的记忆任务名称
+│   - format_parser: 可选的结构化输出解析器（如 parse_memory_extraction_json）
+│   - 内部使用 liteLLM 的 acustom_client 或 factory
+│
+EmbedClient (embedding.py)
+│   embed(texts) -&gt; EmbeddingResponse
+│   embed_dimension() -&gt; int
+│
+RerankClient (rerank.py)
+│   rerank(query, texts) -&gt; RerankResponse
+│
+ModelRouter (router.py)
+│   从 config 读出 chat/embed/rerank 模型路由表
+│   支持 fallback 链（default → fallback）
+│
+LLMRegistry (registry.py)
+    全局单例工厂：get_llm_client() / get_embed_client()
+</pre></div>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">架构决策</p>
+<p><strong>为什么要二次封装 liteLLM 而非直接使用？</strong></p>
+<ol class="arabic simple">
+<li><p><strong>任务标签</strong>：<code class="docutils literal notranslate"><span class="pre">chat(task=&quot;memory.add.extract&quot;,</span> <span class="pre">...)</span></code> 让 OpenTelemetry
+追踪可以直接看到”这一步 LLM 调用是用于记忆提取”。liteLLM 本身不提供
+业务上下文的埋点。</p></li>
+<li><p><strong>结构化输出</strong>：<code class="docutils literal notranslate"><span class="pre">format_parser</span></code> 参数让 LLM 输出从原始 JSON 解析为
+业务 DTO 的逻辑收在调用点附近。</p></li>
+<li><p><strong>配置路由</strong>：不同任务可以使用不同模型（extraction 用 gpt-4.1-mini、
+dreaming 用 gpt-4.1-nano），通过 router 配置在 YAML 中声明式指定。</p></li>
+</ol>
+</div>
+</section>
+<section id="components">
+<h2><span class="section-number">16.5. </span>2.5 components/ — 算法组件库<a class="headerlink" href="#components" title="Link to this heading"></a></h2>
+<p>这是 MindMemOS 最庞大的模块，约 80+ 源文件。按职责划分：</p>
+<section id="components-text">
+<h3><span class="section-number">16.5.1. </span>2.5.1 components/text/ — 文本处理流水线<a class="headerlink" href="#components-text" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">TextPreprocessor</span></code> 是文本处理的主编排器：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>preprocess_text(text, segment_id)
+    │
+    ├── 1. 语言检测 (_language.py)
+    │     - 基于 Unicode 字符比例（CJK / Latin）
+    │     - 输出：zh / en / mixed / unknown
+    │
+    ├── 2. 文本归一化 (_normalize.py)
+    │     - Unicode NFKC 归一化
+    │     - 零宽字符移除
+    │     - 空白折叠
+    │     - 可选的全局 lowercase
+    │
+    ├── 3. 实体识别 (_entity.py)
+    │     - spaCy NER（中文/英文模型）
+    │     - 规则基 fallback（引号、大写首字母、文件路径、代码标识符...）
+    │
+    ├── 4. BM25 分词 (_lexical.py)
+    │     - 中文：jieba 分词
+    │     - 英文：spaCy lemma → stem fallback
+    │     - 输出：terms 列表 + bm25_text
+    │
+    └── 5. 内容哈希 (_hashing.py)
+          - MD5(content_hash_algorithm)
+
+preprocess_query(query)  # 轻量版：不做实体识别
+</pre></div>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">代码洞察</p>
+<p><strong>SparseVectorEncoder</strong> 使用 hash-trick 将 BM25 词条映射到稀疏向量：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># 核心逻辑</span>
+<span class="n">indices</span> <span class="o">=</span> <span class="p">[</span><span class="nb">hash</span><span class="p">(</span><span class="n">term</span><span class="p">)</span> <span class="o">%</span> <span class="n">hash_dim</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">terms</span><span class="p">]</span>  <span class="c1"># 2M 维 hash 空间</span>
+<span class="n">values</span>  <span class="o">=</span> <span class="n">bm25_weight</span><span class="p">(</span><span class="n">term_freq</span><span class="p">,</span> <span class="n">doc_freq</span><span class="p">,</span> <span class="n">doc_len</span><span class="p">,</span> <span class="n">avg_doc_len</span><span class="p">)</span>
+
+<span class="c1"># 当 corpus stats 不可用时使用 TF fallback</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">corpus_stats</span><span class="p">:</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">term_freq</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>这是 BM25 做稀疏检索的工程化标准方案。2M hash 维度足以覆盖绝大部分词汇，
+远小于精确词汇表的维度，且不需要维护词表状态。</p>
+</div>
+</section>
+<section id="components-chunker">
+<h3><span class="section-number">16.5.2. </span>2.5.2 components/chunker/ — 对话结构化<a class="headerlink" href="#components-chunker" title="Link to this heading"></a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>TurnGrouper.group(messages):
+    │ 按 role 变化 + 时间间隔（time_gap_threshold）分组为 Turn
+    │ 每个 turn 标记 boundary 类型
+
+ChunkPlanner.plan(turns):
+    │ 贪心算法：将 turn 依次加入当前 chunk
+    │ 直到 token 预算超限 → 新 chunk
+    │ 硬预算（chunk_hard_token_budget）= 32000
+    │ 软预算（chunk_soft_token_budget）= 26000
+
+LongTurnCompactor:
+    │ 单 turn 超过 turn_hard_token_budget(16000) 时触发
+    │ 策略：head(4000 tokens) + summary(LLM) + tail(4000 tokens)
+    │ head 和 tail 保留为可提取证据
+    │ middle summary 列为不可提取的上下文
+
+HistoryPacker:
+    │ 跨 chunk 的向后滑动窗口
+    │ 最少保留 1 个完整 turn，不超过 history_hard_token_budget(4000)
+</pre></div>
+</div>
+</section>
+<section id="components-extractor">
+<h3><span class="section-number">16.5.3. </span>2.5.3 components/extractor/ — 记忆提取<a class="headerlink" href="#components-extractor" title="Link to this heading"></a></h3>
+<p>这是核心 AI 组件，分 vanilla 和 schema 两条路径。</p>
+<p><strong>Vanilla 路径（默认）</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">AddCoreBuilder</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;纯编排器，接受所有依赖注入&quot;&quot;&quot;</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">consistency</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+        <span class="c1"># Phase 1: Chunking</span>
+        <span class="n">turns</span> <span class="o">=</span> <span class="n">TurnGrouper</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+        <span class="n">chunks</span> <span class="o">=</span> <span class="n">ChunkPlanner</span><span class="o">.</span><span class="n">plan</span><span class="p">(</span><span class="n">turns</span><span class="p">)</span>
+
+        <span class="c1"># Phase 2: 预处理 + 召回 + 提取 (per chunk)</span>
+        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">chunks</span><span class="p">:</span>
+            <span class="n">preprocessed</span> <span class="o">=</span> <span class="k">await</span> <span class="n">preprocess_many</span><span class="p">(</span><span class="n">chunk</span><span class="o">.</span><span class="n">extractable_messages</span><span class="p">)</span>
+            <span class="n">recall</span> <span class="o">=</span> <span class="k">await</span> <span class="n">RelatedMemoryRecall</span><span class="o">.</span><span class="n">recall</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">preprocessed</span><span class="p">)</span>
+            <span class="n">envelope</span> <span class="o">=</span> <span class="n">build_envelope</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="n">preprocessed</span><span class="p">,</span> <span class="n">recall</span><span class="p">)</span>
+            <span class="n">extraction</span> <span class="o">=</span> <span class="k">await</span> <span class="n">VanillaMemoryExtractor</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="n">envelope</span><span class="p">)</span>
+
+        <span class="c1"># Phase 3: Batch 去重</span>
+        <span class="n">deduped</span> <span class="o">=</span> <span class="n">CandidateDeduplicator</span><span class="o">.</span><span class="n">dedup</span><span class="p">(</span><span class="n">all_extractions</span><span class="p">)</span>
+
+        <span class="c1"># Phase 4: Safety Gate</span>
+        <span class="n">actions</span> <span class="o">=</span> <span class="p">[</span><span class="n">AddSafetyGate</span><span class="o">.</span><span class="n">gate</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span> <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">deduped</span><span class="p">]</span>
+
+        <span class="c1"># Phase 5: 向量化</span>
+        <span class="n">vectors</span> <span class="o">=</span> <span class="k">await</span> <span class="n">MemoryVectorizer</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="n">actions</span><span class="p">)</span>
+
+        <span class="c1"># Phase 6: 写入</span>
+        <span class="k">return</span> <span class="n">MemoryDbWritePlan</span><span class="p">(</span><span class="n">memories</span><span class="p">,</span> <span class="n">entities</span><span class="p">,</span> <span class="n">vectors</span><span class="p">,</span> <span class="n">relationships</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>VanillaMemoryExtractor 设计</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">VanillaMemoryExtractor</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">extract_from_envelope</span><span class="p">(</span><span class="n">envelope</span><span class="p">,</span> <span class="n">preprocessed_texts</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">llm_client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_envelope_fallback</span><span class="p">(</span><span class="n">envelope</span><span class="p">,</span> <span class="n">preprocessed_texts</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">messages</span> <span class="o">=</span> <span class="n">_envelope_prompt_messages</span><span class="p">(</span><span class="n">envelope</span><span class="p">,</span> <span class="n">preprocessed_texts</span><span class="p">)</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm_client</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span>
+                <span class="n">task</span><span class="o">=</span><span class="s2">&quot;memory.add.extract&quot;</span><span class="p">,</span>
+                <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span>
+                <span class="n">format_parser</span><span class="o">=</span><span class="n">parse_memory_extraction_json</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">MemoryExtractionResult</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">parsed</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">_mark_extractor</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="s2">&quot;vanilla_llm_chunked&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_envelope_fallback</span><span class="p">(</span><span class="n">envelope</span><span class="p">,</span> <span class="n">preprocessed_texts</span><span class="p">)</span>  <span class="c1"># 降级</span>
+</pre></div>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">架构决策</p>
+<p><strong>降级策略</strong></p>
+<p>如果 LLM 调用失败（网络超时、JSON 解析错误、模型不可用），
+VanillaMemoryExtractor 不会让整个请求失败。它降级到 deterministic fallback：
+- 将每条可提取消息直接作为 “fact” 写入
+- 置信度根据 chunk boundary 设置（complete=1.0, orphan=0.5）</p>
+<p>这保证了**可用性优先于精度**——系统在降级模式下仍然工作，只是记忆质量降低。</p>
+</div>
+<p><strong>Safety Gate 设计</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">AddSafetyGate</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gate_segment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">preprocessed</span><span class="p">,</span> <span class="n">mem_type</span><span class="p">,</span> <span class="n">action_hint</span><span class="p">,</span> <span class="n">confidence</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">preprocessed</span><span class="o">.</span><span class="n">normalized_text</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">min_content_chars</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">SKIP</span>
+        <span class="k">if</span> <span class="n">action_hint</span> <span class="o">==</span> <span class="s2">&quot;update&quot;</span> <span class="ow">and</span> <span class="n">confidence</span> <span class="o">&lt;</span> <span class="n">min_update_confidence</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ADD</span>  <span class="c1"># 降级到 ADD</span>
+        <span class="k">if</span> <span class="n">action_hint</span> <span class="o">==</span> <span class="s2">&quot;merge&quot;</span> <span class="ow">and</span> <span class="n">confidence</span> <span class="o">&lt;</span> <span class="n">min_merge_confidence</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ADD</span>  <span class="c1"># 降级到 ADD</span>
+        <span class="c1"># 安全通过</span>
+</pre></div>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">代码洞察</p>
+<p>Safety Gate 是**最后一道防线**。LLM 可能幻觉出需要 merge/update 的高置信度
+决策，但 confidence 阈值防止了危险的写入操作。这个设计体现了 “trust but verify”
+的安全哲学。</p>
+</div>
+<p><strong>Schema 路径（高阶）</strong></p>
+<p>Schema 模式将记忆提取为结构化的实体-属性-时间线模型：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>SchemaExtractor:
+    │ 对每个 chunk：
+    │ 1. SchemaSelection — 判断是否属于已知 Schema
+    │ 2. PropertyExtraction — 提取实体的属性值
+    │ 3. EntityMerge &amp; Dedup
+    │ 4. Timeline Management (HAS_PROPERTY_MEMORY / NEXT_IN_PROPERTY_TIMELINE)
+    │
+SchemaNormalizer:
+    │ 属性归一化（别名合并、类型推断）
+    │
+SchemaPlanner:
+    │ 生成写入计划（创建/更新/合并实体属性和时间线边）
+
+Schema 处理是异步的：写入 SchemaAddBuffer → Kafka 消费者 drain → 全量推理
+</pre></div>
+</div>
+</section>
+<section id="components-searcher">
+<h3><span class="section-number">16.5.4. </span>2.5.4 components/searcher/ — 检索组件<a class="headerlink" href="#components-searcher" title="Link to this heading"></a></h3>
+<p>支持多通道召回和融合：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># 多通道召回</span>
+<span class="n">candidates</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">candidates</span> <span class="o">+=</span> <span class="n">semantic_search</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="n">recall_size</span> <span class="o">*</span> <span class="n">hybrid_prefetch_factor</span><span class="p">)</span>
+<span class="n">candidates</span> <span class="o">+=</span> <span class="n">bm25_search</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="n">recall_size</span> <span class="o">*</span> <span class="n">hybrid_prefetch_factor</span><span class="p">)</span>
+
+<span class="c1"># 实体扩展</span>
+<span class="n">entities</span> <span class="o">=</span> <span class="n">extract_entities</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span>
+<span class="n">graph_candidates</span> <span class="o">=</span> <span class="n">traverse_neo4j</span><span class="p">(</span><span class="n">entities</span><span class="p">,</span> <span class="n">rel_types</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;MENTIONS&quot;</span><span class="p">,</span> <span class="s2">&quot;RELATES_TO&quot;</span><span class="p">])</span>
+<span class="n">candidates</span> <span class="o">+=</span> <span class="n">graph_candidates</span>
+
+<span class="c1"># RRF 融合</span>
+<span class="n">fused</span> <span class="o">=</span> <span class="n">reciprocal_rank_fusion</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">{</span>
+    <span class="s2">&quot;semantic&quot;</span><span class="p">:</span> <span class="mf">1.5</span><span class="p">,</span>
+    <span class="s2">&quot;bm25&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="s2">&quot;entity&quot;</span><span class="p">:</span> <span class="mf">1.2</span><span class="p">,</span>
+    <span class="s2">&quot;recent&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+<span class="p">})</span>
+
+<span class="c1"># 重排序（可选）</span>
+<span class="k">if</span> <span class="n">use_reranker</span><span class="p">:</span>
+    <span class="n">fused</span> <span class="o">=</span> <span class="n">cohere_rerank</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">fused</span><span class="p">)</span>
+
+<span class="c1"># 最终过滤</span>
+<span class="k">return</span> <span class="n">apply_top_k_and_dedup</span><span class="p">(</span><span class="n">fused</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">代码洞察</p>
+<p><strong>RRF（Reciprocal Rank Fusion）权重</strong></p>
+<p>不同通道的权重在 <code class="docutils literal notranslate"><span class="pre">VanillaAddRecallConfig</span></code> 中配置。Semantic 通道权重 1.5
+高于 BM25 的 1.0，反映了系统更信任语义匹配。Entity 通道权重 1.2 表明
+实体重叠是比纯文本 BM25 更强的召回信号。</p>
+</div>
+</section>
+<section id="components-dreaming">
+<h3><span class="section-number">16.5.5. </span>2.5.5 components/dreaming/ — 离线记忆演化<a class="headerlink" href="#components-dreaming" title="Link to this heading"></a></h3>
+<p>Dreaming Pipeline 是 MindMemOS 的”睡眠学习”机制：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>1. Activity Collector → 读取最近 N 天的 add_record
+2. Scope Selection → 找出 &quot;hot&quot; 的记忆簇
+   - 通过 NeighborScope 图遍历找到语义相邻的记忆组
+   - 评分 = (记忆数 + 20) + (有邻居？+10)
+3. Exact-Dup 预归档 → 完全相同的 content_hash 直接归档
+4. LLM #1: Relation Detection → 检测问题类型
+   (duplicate / conflict / stale / low_value / canonical / complementary)
+5. LLM #2: Action Planning → 生成操作
+   (create / update / merge / archive / link)
+6. 执行 MutationPlan
+</pre></div>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">代码洞察</p>
+<p>每次 Dreaming 运行涉及 2 次 LLM 调用 × scope 数。50 scopes × 2 calls ×
+~2s = ~3.4 分钟。并发度 <code class="docutils literal notranslate"><span class="pre">concurrency=8</span></code> 可以并行处理多个 scope。
+这是典型的 “offline batch processing” 模式，适合在 Agent 空闲时（如深夜）触发。</p>
+</div>
+</section>
+<section id="components-feedback">
+<h3><span class="section-number">16.5.6. </span>2.5.6 components/feedback/ — 在线学习<a class="headerlink" href="#components-feedback" title="Link to this heading"></a></h3>
+<p>Feedback Pipeline 实现从用户交互中学习的闭环：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ExplicitFeedback:
+    用户主动反馈 → LLM 分析对话和召回的记忆 → 生成 add/update/delete/noop
+
+ImplicitFeedback:
+    操作记录 → QueryRewriter 提取查询
+    → RoundsCollector 收集紧凑轮次
+    → SignalDetector 检测负反馈信号
+      (重复请求、&quot;不是X而是Y&quot;、不满表达)
+    → ImplicitFeedbackPlanner 生成修正动作
+</pre></div>
+</div>
+</section>
+<section id="components-skill-skill">
+<h3><span class="section-number">16.5.7. </span>2.5.7 components/skill/ — Skill 系统<a class="headerlink" href="#components-skill-skill" title="Link to this heading"></a></h3>
+<p>MindMemOS 的 Skill 系统是一个轻量级的版本管理系统：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Skill 版本模型类似 Git:
+- cloud_skill_id = &quot;repo&quot;     (SKILL.md 名称)
+- content_hash   = &quot;tree&quot;     (内容 SHA-256)
+- version_id     = &quot;commit&quot;   (确定性主键)
+- version_label  = &quot;tag&quot;      (显示标签)
+- parent_version_id = 父版本 (祖先链)
+
+状态机: observed → draft → evaluating → published → superseded
+                                            └→ rolled_back
+</pre></div>
+</div>
+</section>
+</section>
+<section id="pipelines-pipeline">
+<h2><span class="section-number">16.6. </span>2.6 pipelines/ — Pipeline 编排层<a class="headerlink" href="#pipelines-pipeline" title="Link to this heading"></a></h2>
+<section id="pipeline">
+<h3><span class="section-number">16.6.1. </span>2.6.1 Pipeline 注册表<a class="headerlink" href="#pipeline" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">pipelines/registry.py</span></code> 维护名称→实现的映射：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_PIPELINE_REGISTRY</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;add&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;default_add&quot;</span><span class="p">:</span> <span class="n">DefaultAddPipeline</span><span class="p">,</span> <span class="s2">&quot;vanilla_add&quot;</span><span class="p">:</span> <span class="n">VanillaAddPipeline</span><span class="p">},</span>
+    <span class="s2">&quot;search&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;default&quot;</span><span class="p">:</span> <span class="n">DefaultSearchEngine</span><span class="p">,</span> <span class="s2">&quot;vanilla&quot;</span><span class="p">:</span> <span class="n">VanillaSearchEngine</span><span class="p">,</span> <span class="o">...</span><span class="p">},</span>
+    <span class="s2">&quot;dreaming&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;default_dreaming&quot;</span><span class="p">:</span> <span class="n">DefaultDreamingPipeline</span><span class="p">},</span>
+    <span class="s2">&quot;feedback&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;default_feedback&quot;</span><span class="p">:</span> <span class="n">DefaultFeedbackPipeline</span><span class="p">},</span>
+    <span class="o">...</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="add-pipeline">
+<h3><span class="section-number">16.6.2. </span>2.6.2 Add Pipeline 家族<a class="headerlink" href="#add-pipeline" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id15">
+<caption><span class="caption-text">Add Pipeline 家族</span><a class="headerlink" href="#id15" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Pipeline</p></th>
+<th class="head"><p>职责</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>DefaultAdd</p></td>
+<td><p>直写路径：文本预处理→稀疏向量→写入。无 LLM 调用</p></td>
+</tr>
+<tr class="row-odd"><td><p>VanillaAdd</p></td>
+<td><p>6 阶段全量路径：Chunking→Preprocess→Recall→Extract→
+SafetyGate→Vectorize。含 LLM 语义提取</p></td>
+</tr>
+<tr class="row-even"><td><p>SchemaAdd</p></td>
+<td><p>Schema 模式：实体-属性-时间线提取→写入 SchemaAddBuffer
+→ Kafka worker drain → 全量图推理</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="search-pipeline">
+<h3><span class="section-number">16.6.3. </span>2.6.3 Search Pipeline 家族<a class="headerlink" href="#search-pipeline" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id16">
+<caption><span class="caption-text">Search Pipeline 家族</span><a class="headerlink" href="#id16" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Engine</p></th>
+<th class="head"><p>检索策略</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Default</p></td>
+<td><p>纯 BM25 稀疏检索</p></td>
+</tr>
+<tr class="row-odd"><td><p>Vanilla</p></td>
+<td><p>Dense + Sparse + Graph 多通道 → RRF 融合 → ReRank</p></td>
+</tr>
+<tr class="row-even"><td><p>Schema</p></td>
+<td><p>Schema-aware: Entity → Property → Edge 三级检索</p></td>
+</tr>
+<tr class="row-odd"><td><p>Agentic</p></td>
+<td><p>LLM 驱动的多轮推理：Planner → ToolRouter → Sufficiency</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="memorydbreader-memorydbwriter">
+<h3><span class="section-number">16.6.4. </span>2.6.4 MemoryDbReader / MemoryDbWriter<a class="headerlink" href="#memorydbreader-memorydbwriter" title="Link to this heading"></a></h3>
+<p>这是 Pipeline 和数据库之间的 I/O 桥梁：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>class MemoryDbReader:
+    search_sparse(context, query, indices, values) → MemoryDbSearchResult
+    search_dense(context, query, vector)
+    search_rrf(context, query, dense_vector, sparse_vector)
+    search_graph(context, query, ...)        # Neo4j 图遍历
+    get_memories(context, memory_ids)         # 批量读取
+    list_memory_neighbor_scopes(context, ...) # 图邻居范围列举
+
+class MemoryDbWriter:
+    apply_mutation_plan(context, plan, consistency) → MemoryDbWriteResult
+    # 内部按顺序：
+    # 1. Qdrant memory upserts
+    # 2. Qdrant entity upserts
+    # 3. Qdrant source upserts
+    # 4. Neo4j node upserts
+    # 5. Neo4j relationship upserts
+    # 6. Qdrant memory updates/deletes
+    # 7. Neo4j node updates/deletes
+    # 8. Record add_record/search_record
+</pre></div>
+</div>
+</section>
+<section id="agentic-search">
+<h3><span class="section-number">16.6.5. </span>2.6.5 Agentic Search — 多轮推理<a class="headerlink" href="#agentic-search" title="Link to this heading"></a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>AgenticSearchPipeline (wrapper)
+    │
+    AgenticSearchLoop
+    │   Round 1:
+    │   ├── Planner: &quot;用户问的是咖啡偏好，用 vanilla search 找&quot;
+    │   ├── ToolRouter → VanillaSearchEngine
+    │   ├── Sufficiency: &quot;结果不够，只找到了一条模糊记忆&quot;
+    │   │
+    │   Round 2:
+    │   ├── Planner: &quot;扩大搜索范围，用 graph recall&quot;
+    │   ├── ToolRouter → Neo4j entity expansion
+    │   ├── Sufficiency: &quot;找到了！用户说更喜欢拿铁&quot;
+    │   │
+    │   Round 3 (可选):
+    │   Sufficiency → &quot;足够&quot; → 汇总结果返回
+</pre></div>
+</div>
+<p>Agentic 搜索适合需要多步推理的复杂查询（”找上周那个喜欢冰美式的用户的项目偏好”），
+但额外 LLM 调用增加了延迟（2-8s vs 50-100ms）。</p>
+</section>
+</section>
+<section id="api">
+<h2><span class="section-number">16.7. </span>2.7 api/ — 路由层<a class="headerlink" href="#api" title="Link to this heading"></a></h2>
+<p>FastAPI 应用通过工厂函数构建：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">app</span> <span class="o">=</span> <span class="n">FastAPI</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;MindMemOS API&quot;</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s2">&quot;0.1.0&quot;</span><span class="p">,</span> <span class="n">lifespan</span><span class="o">=</span><span class="n">lifespan</span><span class="p">)</span>
+<span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">memory_router</span><span class="p">)</span>     <span class="c1"># POST /v1/memory/add, search, get, delete, update, feedback, dreaming</span>
+<span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">skill_router</span><span class="p">)</span>       <span class="c1"># POST /v1/skills/register, get, list, evolve, sync</span>
+<span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">internal_router</span><span class="p">)</span>    <span class="c1"># 内部运维端点</span>
+</pre></div>
+</div>
+<p>认证系统支持四种方式，由 <code class="docutils literal notranslate"><span class="pre">api/auth/registry.py</span></code> 统一管理：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>AuthRegistry
+├── APIKeyAuth       — Bearer token → 查 api_keys.yaml
+├── GatewayJWTAuth   — 网关签发的 JWT
+├── InternalTokenAuth— 内部服务间共享密钥
+└── ChainedAuth      — 组合多种方式
+</pre></div>
+</div>
+<p>每个认证方式实现 :</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">AuthHandler</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">authenticate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AuthContext</span><span class="p">:</span> <span class="o">...</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">AuthContext</span></code> 包含 <code class="docutils literal notranslate"><span class="pre">account_id</span></code>、<code class="docutils literal notranslate"><span class="pre">project_id</span></code>、<code class="docutils literal notranslate"><span class="pre">scopes</span></code> 等信息，
+通过 <code class="docutils literal notranslate"><span class="pre">api/deps.py</span></code> 注入到每个路由的依赖中。</p>
+</section>
+<section id="workers-kafka">
+<h2><span class="section-number">16.8. </span>2.8 workers/ — Kafka 消费者<a class="headerlink" href="#workers-kafka" title="Link to this heading"></a></h2>
+<p>Kafka worker 架构将耗时操作异步化：</p>
+<table class="docutils align-default" id="id17">
+<caption><span class="caption-text">Worker 设计</span><a class="headerlink" href="#id17" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Worker</p></th>
+<th class="head"><p>消费 Topic</p></th>
+<th class="head"><p>处理逻辑</p></th>
+<th class="head"><p>一致性要求</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>MemoryAddWorker</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">memory.add</span></code></p></td>
+<td><p>反序列化 context + input → 重建 RequestContext → 调用
+<code class="docutils literal notranslate"><span class="pre">VanillaAddPipeline.add_sync()</span></code></p></td>
+<td><p>at-least-once（幂等通过 dedup_metadata_key）</p></td>
+</tr>
+<tr class="row-odd"><td><p>MemoryDreamingWorker</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">memory.dreaming</span></code></p></td>
+<td><p>离线巩固执行</p></td>
+<td><p>at-least-once</p></td>
+</tr>
+<tr class="row-even"><td><p>MemoryFeedbackWorker</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">memory.feedback</span></code></p></td>
+<td><p>反馈处理</p></td>
+<td><p>at-least-once</p></td>
+</tr>
+<tr class="row-odd"><td><p>SchemaAddDrainWorker</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">schema.add.drain</span></code></p></td>
+<td><p>Schema 缓冲区 drain → 全量属性推理</p></td>
+<td><p>at-least-once</p></td>
+</tr>
+<tr class="row-even"><td><p>SchemaAddEpisodeWorker</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">schema.add.episode</span></code></p></td>
+<td><p>情节边创建</p></td>
+<td><p>at-least-once</p></td>
+</tr>
+<tr class="row-odd"><td><p>SkillEvolveWorker</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">skill.evolve</span></code></p></td>
+<td><p>从轨迹摘要→Skill 版本演化</p></td>
+<td><p>at-least-once</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition- admonition">
+<p class="admonition-title">代码洞察</p>
+<p><strong>幂等性设计</strong></p>
+<p>Kafka 的 at-least-once 语义意味着同一条消息可能被处理多次。MindMemOS 通过
+<code class="docutils literal notranslate"><span class="pre">dedup_metadata_key</span></code> 实现幂等：每个 update 命令携带一个去重键，
+DB writer 在执行前检查该键是否已被处理。</p>
+</div>
+</section>
+<section id="mappers">
+<h2><span class="section-number">16.9. </span>2.9 mappers/ — 类型转换桥梁<a class="headerlink" href="#mappers" title="Link to this heading"></a></h2>
+<p>这是系统中最容易被忽视但最关键的一层：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>mappers/
+├── api.py            # FastAPI Schema → Pipeline Input DTO
+│     - Pydantic model_validate → AddPipelineInput / SearchPipelineInput
+│
+├── db.py             # Pipeline DTO → Qdrant Point + Neo4j Statement
+│     - MemoryWrite → MemoryPoint (Qdrant PointStruct)
+│     - MemoryWrite → MemoryNode (Neo4j node)
+│     - GraphRelationship → Neo4j MERGE statment
+│
+├── search_filters.py # DSL dict → SearchFilter → Qdrant Filter
+│     - parse_search_dsl() 用户 JSON → SearchFilter
+│     - to_qdrant_filter() SearchFilter → qmodels.Filter
+│
+├── result.py          # QdrantRecord → MemoryView
+│
+├── errors.py          # 异常类型转换
+│
+└── skill.py           # Skill DTO 互转
+</pre></div>
+</div>
+<div class="admonition- admonition">
+<p class="admonition-title">架构决策</p>
+<p><strong>为什么不在 typing/ 层直接实现 to_qdrant() 方法？</strong></p>
+<p>因为 typing/ 的 “零外部依赖” 原则禁止 import qdrant_client。如果
+MemoryWrite 有一个 to_qdrant_point() 方法，SDK 用户就必须安装 qdrant_client
+才能创建 MemoryWrite。Mapper 层作为”高依赖层”，承担所有与外部系统的对接。</p>
+</div>
+</section>
+</section>
+<section id="id10">
+<h1><span class="section-number">17. </span>第三部分：关键设计权衡与反思<a class="headerlink" href="#id10" title="Link to this heading"></a></h1>
+<section id="rag">
+<h2><span class="section-number">17.1. </span>3.1 为什么不用纯 RAG？<a class="headerlink" href="#rag" title="Link to this heading"></a></h2>
+<p>简单 RAG 方案（Embedding + Top-K 检索）无法处理：</p>
+<ol class="arabic simple">
+<li><p><strong>版本演化</strong>：用户的偏好从”冰美式”变成”拿铁”——RAG 只能返回两条
+互相矛盾的记忆，不知道哪条才是最新的。</p></li>
+<li><p><strong>跨 Agent 迁移</strong>：Agent A 积累的记忆如何迁移到 Agent B？RAG 没有
+记忆序列化协议。</p></li>
+<li><p><strong>知识蒸馏</strong>：100 条碎片化的工具调用日志 → 1 条精炼的”如何配置
+CI/CD”经验。RAG 做不到这种抽象。</p></li>
+</ol>
+<p>MindMemOS 通过在 Vanilla 模式上叠加 Schema（属性时间线）和 Dreaming
+（蒸馏合并）来弥补这些 gap。</p>
+</section>
+<section id="id11">
+<h2><span class="section-number">17.2. </span>3.2 架构复杂度值不值？<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id18">
+<caption><span class="caption-text">权衡分析</span><a class="headerlink" href="#id18" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>维度</p></th>
+<th class="head"><p>收益</p></th>
+<th class="head"><p>代价</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>分层严格</p></td>
+<td><p>每个模块可独立测试和替换</p></td>
+<td><p>数据流动需要经过多层 DTO 转换</p></td>
+</tr>
+<tr class="row-odd"><td><p>双存储引擎</p></td>
+<td><p>向量 + 图遍历两不误</p></td>
+<td><p>写入一致性维护复杂</p></td>
+</tr>
+<tr class="row-even"><td><p>离线 Dreaming</p></td>
+<td><p>记忆质量自动提升</p></td>
+<td><p>需要 Kafka + 额外 LLM 调用成本</p></td>
+</tr>
+<tr class="row-odd"><td><p>Schema 模式</p></td>
+<td><p>用户画像精准 vs. 碎片记忆</p></td>
+<td><p>抽取延迟增加 + 需要异步 drain</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id12">
+<h2><span class="section-number">17.3. </span>3.3 从代码中看出的后续方向<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>文件记忆系统</strong>：当前 file/url message 已定义但处理路径尚未完整实现</p></li>
+<li><p><strong>Agentic Search 增强</strong>：当前只有 Planner→Tool→Sufficiency 基架</p></li>
+<li><p><strong>Skill 自动演化</strong>：skill_evolve worker 已注册但功能还未充分开发</p></li>
+<li><p><strong>跨模型兼容性</strong>：liteLLM 层支持多供应商，但 Schema 模式仅验证了
+gpt-4.1-mini</p></li>
+</ol>
+</section>
+</section>
+<section id="a">
+<h1><span class="section-number">18. </span>附录 A：文件统计<a class="headerlink" href="#a" title="Link to this heading"></a></h1>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>src/mindmemos/mindmemos/
+├── api/              ~15 文件    (路由 + 认证 + 服务)
+├── components/       ~70 文件    (算法组件)
+│   ├── chunker/       ~8 文件
+│   ├── dreaming/      ~2 文件
+│   ├── extractor/     ~20 文件
+│   ├── feedback/      ~5 文件
+│   ├── memory_modeling/ ~5 文件
+│   ├── searcher/      ~15 文件
+│   ├── skill/         ~2 文件
+│   └── text/          ~9 文件
+├── config/           ~25 文件    (配置 schema)
+├── errors/           ~7 文件     (异常体系)
+├── infra/            ~20 文件    (Qdrant, Neo4j, Kafka, Telemetry)
+├── llm/              ~5 文件     (LLM 抽象)
+├── logging/          ~2 文件     (日志 + 追踪)
+├── mappers/          ~6 文件     (类型转换)
+├── pipelines/        ~30 文件    (Pipeline 编排)
+├── prompts/          ~25 文件    (LLM 提示词 EN + ZH)
+├── typing/           ~7 文件     (DTO 契约)
+└── workers/          ~7 文件     (Kafka 消费者)
+</pre></div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="13-deployment.html" class="btn btn-neutral float-left" title="13. 部署与配置" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, mindscale-noah.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

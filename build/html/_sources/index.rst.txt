@@ -20,3 +20,4 @@ MindMemOS — 技术深度解析
    11-integration
    12-benchmark
    13-deployment
+   14-technical-design
