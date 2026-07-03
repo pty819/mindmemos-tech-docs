@@ -19,4 +19,10 @@
 09-dreaming-chain
 10-feedback-chain
 11-deployment
+12-knowledge-model
+13-knowledge-ingestion
+14-knowledge-organization
+15-knowledge-retrieval
+16-knowledge-consolidation
+17-knowledge-feedback
 ```

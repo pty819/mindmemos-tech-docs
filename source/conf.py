@@ -24,7 +24,7 @@ exclude_patterns: list[str] = []
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
-html_title = "MindMemOS 模块设计解析"
+html_title = "MindMemOS 模块设计解析 — 架构篇 + 白皮书"
 
 autodoc_default_options = {
     "members": True,
