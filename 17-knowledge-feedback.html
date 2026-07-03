@@ -1,0 +1,787 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>6. 知识反馈闭环设计 &mdash; MindMemOS 设计理念与技术架构</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="1. 项目概述" href="01-intro.html" />
+    <link rel="prev" title="5. 知识巩固（Dreaming）设计" href="16-knowledge-consolidation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            MindMemOS 模块设计解析
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">上篇 · 设计理念篇</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="12-knowledge-model.html">1. 知识模型设计理念</a></li>
+<li class="toctree-l1"><a class="reference internal" href="13-knowledge-ingestion.html">2. 知识拆解入库流程设计</a></li>
+<li class="toctree-l1"><a class="reference internal" href="14-knowledge-organization.html">3. 知识组织方式设计</a></li>
+<li class="toctree-l1"><a class="reference internal" href="15-knowledge-retrieval.html">4. 知识组装排序提取设计</a></li>
+<li class="toctree-l1"><a class="reference internal" href="16-knowledge-consolidation.html">5. 知识巩固（Dreaming）设计</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">6. 知识反馈闭环设计</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id2">6.1. 反馈闭环总览</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#explicit">6.2. 显式反馈（Explicit）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#implicit">6.3. 隐式反馈（Implicit）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reinforcement-count">6.4. 强化计数（Reinforcement Count）的设计</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">6.5. 反馈-检索闭环</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">6.6. 反馈的数据流</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">6.7. 设计原则总结</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">下篇 · 技术框架篇</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="01-intro.html">1. 项目概述</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02-module-architecture.html">2. 模块互联架构</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03-pipeline-registry.html">3. Pipeline 注册与发现机制</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04-api-to-storage.html">4. 请求链路：API → Service → Pipeline → Storage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05-dual-write.html">5. 双存储一致性模型</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06-kafka-bus.html">6. Kafka 事件总线与 Worker 架构</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07-add-chain.html">7. Add Pipeline 模块调用链</a></li>
+<li class="toctree-l1"><a class="reference internal" href="08-search-chain.html">8. Search Pipeline 模块调用链</a></li>
+<li class="toctree-l1"><a class="reference internal" href="09-dreaming-chain.html">9. Dreaming Pipeline 模块调用链</a></li>
+<li class="toctree-l1"><a class="reference internal" href="10-feedback-chain.html">10. Feedback Pipeline 模块调用链</a></li>
+<li class="toctree-l1"><a class="reference internal" href="11-deployment.html">11. 部署与配置</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MindMemOS 模块设计解析</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">6. </span>知识反馈闭环设计</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/17-knowledge-feedback.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1><span class="section-number">6. </span>知识反馈闭环设计<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
+<p>知识的价值是动态的——不是写入时设定的。一条 Memory 可能因为被多次引用而变得重要，也可能因为被后续信息推翻而变得过时。<strong>Feedback Pipeline</strong> 是 MindMemOS 让知识<strong>随时间改进</strong>的机制。</p>
+<section id="id2">
+<h2><span class="section-number">6.1. </span>反馈闭环总览<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<pre  class="mermaid">
+        graph TB
+    subgraph &quot;知识生命周期&quot;
+        WRITE[&quot;写入 Memory&quot;] --&gt; RETRIEVE[&quot;检索 Memory&quot;]
+        RETRIEVE --&gt; USE[&quot;用户/Agent 使用&quot;]
+        USE --&gt; FEEDBACK[&quot;产生反馈信号&quot;]
+        FEEDBACK --&gt; UPDATE[&quot;更新 Memory 属性&quot;]
+        UPDATE --&gt; RETRIEVE
+    end
+    
+    subgraph &quot;反馈信号来源&quot;
+        EXP[&quot;Explicit 显式评分&lt;br/&gt;用户主动给的分&quot;]
+        IMP[&quot;Implicit 隐式信号&lt;br/&gt;点击/跳过/停留时间&quot;]
+    end
+    
+    subgraph &quot;Memory 属性变更&quot;
+        R1[&quot;reinforcement_count += 1&quot;]
+        R2[&quot;feedback_score = new_score&quot;]
+        R3[&quot;metadata.patch()&quot;]
+    end
+    
+    EXP --&gt; FEEDBACK
+    IMP --&gt; FEEDBACK
+    FEEDBACK --&gt; R1
+    FEEDBACK --&gt; R2
+    FEEDBACK --&gt; R3
+    </pre></section>
+<section id="explicit">
+<h2><span class="section-number">6.2. </span>显式反馈（Explicit）<a class="headerlink" href="#explicit" title="Link to this heading"></a></h2>
+<p>用户（或上游 Agent）明确告知系统一条记忆的价值：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># 概念性的 API 调用</span>
+<span class="n">POST</span> <span class="o">/</span><span class="n">v1</span><span class="o">/</span><span class="n">memory</span><span class="o">/</span><span class="n">feedback</span>
+<span class="p">{</span>
+  <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;explicit&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;memory_ids&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;mem_xxx&quot;</span><span class="p">,</span> <span class="s2">&quot;mem_yyy&quot;</span><span class="p">],</span>
+  <span class="s2">&quot;score&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>          <span class="c1"># 1-5</span>
+  <span class="s2">&quot;relevance&quot;</span><span class="p">:</span> <span class="mf">0.95</span><span class="p">,</span>   <span class="c1"># 0-1</span>
+  <span class="s2">&quot;comment&quot;</span><span class="p">:</span> <span class="s2">&quot;这个诊断记录非常准确&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>显式反馈的处理链很简单：</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    participant U as 用户/Agent
+    participant SVC as MemoryService
+    participant FB as FeedbackPipeline
+    participant W as MemoryDbWriter
+
+    U-&gt;&gt;SVC: feedback(type=explicit, memory_ids, score)
+    SVC-&gt;&gt;FB: feedback_sync()
+    FB-&gt;&gt;FB: explicit_planner.plan()
+    Note over FB: 解析 score → update delta
+    FB-&gt;&gt;W: update_memory(reinforcement_count +delta, feedback_score=score)
+    W--&gt;&gt;FB: OK
+    FB--&gt;&gt;SVC: FeedbackPipelineResult
+    </pre></section>
+<section id="implicit">
+<h2><span class="section-number">6.3. </span>隐式反馈（Implicit）<a class="headerlink" href="#implicit" title="Link to this heading"></a></h2>
+<p>多数反馈不是用户主动给的，而是从行为中推导的：</p>
+<pre  class="mermaid">
+        graph TB
+    subgraph &quot;隐式信号检测&quot;
+        S1[&quot;搜索后点击了第 3 条结果&lt;br/&gt;而非第 1 条&quot;]
+        S2[&quot;同一 session 内&lt;br/&gt;反复搜索同一实体&quot;]
+        S3[&quot;搜索后没有点击任何结果&lt;br/&gt;→ 检索质量差&quot;]
+        S4[&quot;用户在对话中&lt;br/&gt;引用/重述了某条记忆&quot;]
+    end
+    
+    subgraph &quot;信号处理&quot;
+        S1 --&gt;|&quot;强度: 中&quot;| D[&quot;SignalDetector&quot;]
+        S2 --&gt;|&quot;强度: 高&quot;| D
+        S3 --&gt;|&quot;强度: 低&quot;| D
+        S4 --&gt;|&quot;强度: 很高&quot;| D
+    end
+    
+    subgraph &quot;行动决策&quot;
+        D --&gt;|&quot;strength &gt; threshold&quot;| LLM[&quot;LLM evaluate&quot;]
+        LLM --&gt;|&quot;need_rewrite?&quot;| QR[&quot;Query Rewriter&quot;]
+        QR --&gt;|&quot;rewritten query&quot;| PLAN[&quot;Action Planner&quot;]
+        PLAN --&gt;|&quot;reinforce/patch/demote&quot;| W[&quot;MemoryDbWriter&quot;]
+    end
+    </pre><p>隐式反馈的处理路径比显式复杂——它需要 LLM 判断信号的含义：</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    participant SVC as MemoryService
+    participant FB as DefaultFeedbackPipeline
+    participant SIG as SignalDetector
+    participant LLM as LLMClient
+    participant W as MemoryDbWriter
+
+    SVC-&gt;&gt;FB: feedback_sync(type=implicit, query, clicked_memory)
+    
+    FB-&gt;&gt;SIG: detect(query, behavior)
+    SIG--&gt;&gt;FB: Signal(type=&quot;click_skip&quot;, strength=0.7)
+    
+    alt strength &gt; threshold
+        FB-&gt;&gt;LLM: chat(SEARCH_DECISION_PROMPT)
+        Note over LLM: 这个信号说明什么？
+        Note over LLM: 用户没点击 top-1 而是点了 top-3
+        Note over LLM: 是否说明 top-1 不相关，top-3 更相关？
+        LLM--&gt;&gt;FB: {need_rewrite: true, reason: &quot;ranking mismatch&quot;}
+        
+        FB-&gt;&gt;LLM: chat(QUERY_REWRITE_PROMPT)
+        LLM--&gt;&gt;FB: rewritten_query
+        
+        FB-&gt;&gt;FB: action_planner.plan()
+        Note over FB: demote top-1, reinforce top-3
+        FB-&gt;&gt;W: apply_mutation_plan()
+    end
+    </pre><p><strong>设计取舍</strong>：隐式反馈走 LLM 路径体现了”宁可少改，不可错改”的原则。如果系统不确定信号含义，就什么都不做。虚假的正反馈（错误强化）比遗漏的负反馈更有害。</p>
+</section>
+<section id="reinforcement-count">
+<h2><span class="section-number">6.4. </span>强化计数（Reinforcement Count）的设计<a class="headerlink" href="#reinforcement-count" title="Link to this heading"></a></h2>
+<p>每条 Memory 有一个 <code class="docutils literal notranslate"><span class="pre">reinforcement_count</span></code> 字段。它不是简单的计数器，而是有语义的：</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>事件</p></th>
+<th class="head"><p>count 变化</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Memory 被检索命中且用户点击</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">+=</span> <span class="pre">1</span></code></p></td>
+<td><p>确认有效</p></td>
+</tr>
+<tr class="row-odd"><td><p>同一用户重复引用</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">+=</span> <span class="pre">2</span></code></p></td>
+<td><p>高价值</p></td>
+</tr>
+<tr class="row-even"><td><p>用户明确打高分</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">+=</span> <span class="pre">5</span></code></p></td>
+<td><p>强确认</p></td>
+</tr>
+<tr class="row-odd"><td><p>用户明确打低分</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-=</span> <span class="pre">3</span></code></p></td>
+<td><p>质量差</p></td>
+</tr>
+<tr class="row-even"><td><p>Dreaming 检测到被覆盖</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-=</span> <span class="pre">1</span></code></p></td>
+<td><p>过时</p></td>
+</tr>
+</tbody>
+</table>
+<p>强化计数影响<strong>后续检索排序</strong>——在 Reranker 中作为排序信号之一：</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">final_score</span> <span class="o">=</span> <span class="n">bm25_score</span> <span class="o">*</span> <span class="mf">0.6</span> <span class="o">+</span> <span class="n">recency</span> <span class="o">*</span> <span class="mf">0.2</span> <span class="o">+</span> <span class="n">reinforcement_normalized</span> <span class="o">*</span> <span class="mf">0.2</span>
+</pre></div>
+</div>
+</section>
+<section id="id3">
+<h2><span class="section-number">6.5. </span>反馈-检索闭环<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>feedback 不仅影响目标 Memory，还通过检索记录的关联影响<strong>未来的检索</strong>：</p>
+<pre  class="mermaid">
+        graph LR
+    A[&quot;用户搜索 '压力异常'&quot;] --&gt; B[&quot;搜索结果: Memory A, B, C&quot;]
+    B --&gt; C[&quot;用户点击了 B，没有点 A&quot;]
+    C --&gt; D[&quot;Feedback: demote A, reinforce B&quot;]
+    D --&gt; E[&quot;下一次搜索 '压力异常'&quot;]
+    E --&gt; F[&quot;Memory B 排名上升&lt;br/&gt;Memory A 排名下降&quot;]
+    </pre><p>这个闭环是自动运转的——不需要用户意识到系统在学习。</p>
+</section>
+<section id="id4">
+<h2><span class="section-number">6.6. </span>反馈的数据流<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p>所有 feedback 操作和 search 操作都会被记录到 audit store，形成完整的数据输入：</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>search_record_v1:
+  - request_id
+  - query
+  - recalled_memories[]  ← 本次检索返回了哪些 Memory
+  - scores
+  - clicked_memory_id?   ← 用户点了哪个（后续通过 feedback 补充）
+  - created_at
+
+add_record_v1:
+  - request_id
+  - input (messages)
+  - status (queued/processing/completed/failed)
+  - memories[]  ← 这次 add 产生了哪些 Memory
+  - skill_bindings
+  - created_at, completed_at
+</pre></div>
+</div>
+<p>这些记录被 <code class="docutils literal notranslate"><span class="pre">RecentActivityCollector</span></code> 读取，作为 Dreaming Pipeline 的 Scope 来源。</p>
+</section>
+<section id="id5">
+<h2><span class="section-number">6.7. </span>设计原则总结<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>原则</p></th>
+<th class="head"><p>理由</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>显式路径快，隐式路径慢</strong></p></td>
+<td><p>显式信号可信度高，直接更新；隐式信号需 LLM 裁决</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>宁可漏改，不可错改</strong></p></td>
+<td><p>虚假强化比遗漏强化更有害</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>检索即学习</strong></p></td>
+<td><p>每次检索被记录，feedback 可以随时关联</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>强化计数是多信号之一</strong></p></td>
+<td><p>不单靠计数排序，与 BM25 score 和时效性联合使用</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Feedback 记录可审计</strong></p></td>
+<td><p>所有 feedback 操作都被持久化，供后续分析</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="16-knowledge-consolidation.html" class="btn btn-neutral float-left" title="5. 知识巩固（Dreaming）设计" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="01-intro.html" class="btn btn-neutral float-right" title="1. 项目概述" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, mindscale-noah.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

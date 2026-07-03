@@ -1,0 +1,701 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>8. Search Pipeline 模块调用链 &mdash; MindMemOS 设计理念与技术架构</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="9. Dreaming Pipeline 模块调用链" href="09-dreaming-chain.html" />
+    <link rel="prev" title="7. Add Pipeline 模块调用链" href="07-add-chain.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            MindMemOS 模块设计解析
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">上篇 · 设计理念篇</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="12-knowledge-model.html">1. 知识模型设计理念</a></li>
+<li class="toctree-l1"><a class="reference internal" href="13-knowledge-ingestion.html">2. 知识拆解入库流程设计</a></li>
+<li class="toctree-l1"><a class="reference internal" href="14-knowledge-organization.html">3. 知识组织方式设计</a></li>
+<li class="toctree-l1"><a class="reference internal" href="15-knowledge-retrieval.html">4. 知识组装排序提取设计</a></li>
+<li class="toctree-l1"><a class="reference internal" href="16-knowledge-consolidation.html">5. 知识巩固（Dreaming）设计</a></li>
+<li class="toctree-l1"><a class="reference internal" href="17-knowledge-feedback.html">6. 知识反馈闭环设计</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">下篇 · 技术框架篇</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="01-intro.html">1. 项目概述</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02-module-architecture.html">2. 模块互联架构</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03-pipeline-registry.html">3. Pipeline 注册与发现机制</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04-api-to-storage.html">4. 请求链路：API → Service → Pipeline → Storage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05-dual-write.html">5. 双存储一致性模型</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06-kafka-bus.html">6. Kafka 事件总线与 Worker 架构</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07-add-chain.html">7. Add Pipeline 模块调用链</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">8. Search Pipeline 模块调用链</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">8.1. Search Pipeline 路由</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#bm25-defaultsearchengine">8.2. BM25 路径（DefaultSearchEngine）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#schema-search">8.3. Schema Search 路径</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">8.4. 搜索过滤器链</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#agentic-search">8.5. Agentic Search 路径</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="09-dreaming-chain.html">9. Dreaming Pipeline 模块调用链</a></li>
+<li class="toctree-l1"><a class="reference internal" href="10-feedback-chain.html">10. Feedback Pipeline 模块调用链</a></li>
+<li class="toctree-l1"><a class="reference internal" href="11-deployment.html">11. 部署与配置</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MindMemOS 模块设计解析</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">8. </span>Search Pipeline 模块调用链</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/08-search-chain.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="search-pipeline">
+<h1><span class="section-number">8. </span>Search Pipeline 模块调用链<a class="headerlink" href="#search-pipeline" title="Link to this heading"></a></h1>
+<p>Search Pipeline 是<strong>读入口</strong>。它不像 Add 那样有一条固定的执行路径——同一个 <code class="docutils literal notranslate"><span class="pre">search()</span></code> 方法会根据配置走不同引擎。</p>
+<section id="id1">
+<h2><span class="section-number">8.1. </span>Search Pipeline 路由<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<pre  class="mermaid">
+        graph TB
+    MS[&quot;MemoryService.search()&quot;] --&gt; SP[&quot;SearchPipeline&lt;br/&gt;pipelines/search/pipeline.py&quot;]
+    
+    SP --&gt; ROUTE{&quot;memory_algorithm&lt;br/&gt;search_pipeline?&quot;}
+    
+    ROUTE --&gt;|&quot;vanilla&quot;| VE[&quot;VanillaSearchEngine&lt;br/&gt;pipelines/search/vanilla/engine.py&quot;]
+    ROUTE --&gt;|&quot;schema&quot;| SE[&quot;SchemaSearchEngine&lt;br/&gt;pipelines/search/schema/engine.py&quot;]
+    ROUTE --&gt;|&quot;default&quot;| DE[&quot;DefaultSearchEngine&lt;br/&gt;pipelines/search/default.py&quot;]
+    ROUTE --&gt;|&quot;agentic&quot;| AE[&quot;AgenticSearchPipeline&lt;br/&gt;pipelines/search/agentic/pipeline.py&quot;]
+    
+    VE --&gt; VQ[&quot;BM25 Qdrant 检索&quot;]
+    DE --&gt; DQ[&quot;BM25 Qdrant 检索&quot;]
+    SE --&gt; SC[&quot;schema 扩展链&quot;]
+    AE --&gt; AL[&quot;LLM 驱动的多轮搜索循环&quot;]
+    </pre></section>
+<section id="bm25-defaultsearchengine">
+<h2><span class="section-number">8.2. </span>BM25 路径（DefaultSearchEngine）<a class="headerlink" href="#bm25-defaultsearchengine" title="Link to this heading"></a></h2>
+<pre  class="mermaid">
+        sequenceDiagram
+    participant SVC as MemoryService
+    participant P as SearchPipeline
+    participant DE as DefaultSearchEngine
+    participant TP as TextPreprocessor
+    participant SE as SparseVectorEncoder
+    participant R as MemoryDbReader
+    participant Q as QdrantEngine
+
+    SVC-&gt;&gt;P: search(payload, context)
+    P-&gt;&gt;DE: search_candidates()
+    
+    DE-&gt;&gt;TP: preprocess_query(query, include_entities=False)
+    TP--&gt;&gt;DE: PreprocessResult(tokens, ...)
+    
+    DE-&gt;&gt;SE: encode_query(tokens)
+    SE--&gt;&gt;DE: SparseVector(indices, values)
+    
+    DE-&gt;&gt;DE: 构建 MemoryDbSearchQuery(query, top_k, filters)
+    
+    DE-&gt;&gt;R: search_sparse(context, query, indices, values)
+    
+    R-&gt;&gt;Q: qdrant.search_memories(project_id, sparse_vector, filter)
+    Note over Q: Qdrant 的稀疏 BM25 搜索
+    Q--&gt;&gt;R: QdrantSearchResult(hits)
+    
+    R--&gt;&gt;DE: MemoryDbSearchResult
+    DE--&gt;&gt;P: MemorySearchItem[]
+    
+    P--&gt;&gt;SVC: SearchPipelineResult
+    </pre><p><strong>代码锚点</strong>：<code class="docutils literal notranslate"><span class="pre">pipelines/search/default.py:40-75</span></code></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">search_candidates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inp</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">preprocessed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_text_preprocessor</span><span class="o">.</span><span class="n">preprocess_query</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">query</span><span class="p">)</span>
+    <span class="n">sparse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sparse_encoder</span><span class="o">.</span><span class="n">encode_query</span><span class="p">(</span><span class="n">preprocessed</span><span class="o">.</span><span class="n">tokens</span><span class="p">)</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">MemoryDbSearchQuery</span><span class="p">(</span><span class="n">query</span><span class="o">=</span><span class="n">inp</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=...</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;bm25&quot;</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_reader</span><span class="o">.</span><span class="n">search_sparse</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">MemorySearchItem</span><span class="p">(</span><span class="o">...</span><span class="p">)</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">hits</span><span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="schema-search">
+<h2><span class="section-number">8.3. </span>Schema Search 路径<a class="headerlink" href="#schema-search" title="Link to this heading"></a></h2>
+<pre  class="mermaid">
+        graph TB
+    SP[&quot;SearchPipeline.search()&quot;] --&gt; SSE[&quot;SchemaSearchEngine&quot;]
+    
+    subgraph &quot;Schema Search 扩展链&quot;
+        SSE --&gt; SC[&quot;schema_search_expander.expand()&quot;]
+        SC --&gt; S1[&quot;BM25 检索 candidate memories&quot;]
+        S1 --&gt; S2[&quot;从 candidates 提取 entities&quot;]
+        S2 --&gt; S3[&quot;property_recall()&lt;br/&gt;查 entity 属性&quot;]
+        S3 --&gt; S4[&quot;entity_fusion()&lt;br/&gt;多源实体融合&quot;]
+        S4 --&gt; S5[&quot;_ranker.rank()&lt;br/&gt;排序&quot;]
+        S5 --&gt; S6[&quot;final_filter.filter()&lt;br/&gt;最终过滤&quot;]
+    end
+    
+    subgraph &quot;依赖的模块&quot;
+        S3 --&gt; PR[&quot;components/searcher/schema/property_recall.py&quot;]
+        S4 --&gt; EF[&quot;components/searcher/schema/_entity_fusion.py&quot;]
+        S5 --&gt; RK[&quot;components/searcher/schema/_ranker.py&quot;]
+        S6 --&gt; FF[&quot;components/searcher/final_filter.py&quot;]
+    end
+    </pre></section>
+<section id="id2">
+<h2><span class="section-number">8.4. </span>搜索过滤器链<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>Search Pipeline 的 filters 参数经过多层转换：</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    participant C as Client
+    participant MAP as mappers/search_filters.py
+    participant P as Pipeline
+    participant R as MemoryDbReader
+    participant Q as QdrantEngine
+
+    C-&gt;&gt;MAP: SearchRequest.filters (DSL)
+    MAP-&gt;&gt;MAP: parse_search_dsl(filters)
+    Note over MAP: 将用户 DSL 转为 FieldCondition[]
+    
+    MAP-&gt;&gt;MAP: 添加默认 scope 条件
+    Note over MAP: status=active (始终生效)
+    Note over MAP: project_id scoping (多租户)
+    
+    P-&gt;&gt;R: search_sparse(context, query, filters)
+    R-&gt;&gt;MAP: search_filter_to_qdrant(ctx, filters)
+    Note over MAP: 将 SearchFilter → Qdrant Filter
+    Note over MAP: 添加 account_id / project_id 硬过滤
+    
+    Q--&gt;&gt;Q: Qdrant Filter 执行
+    </pre></section>
+<section id="agentic-search">
+<h2><span class="section-number">8.5. </span>Agentic Search 路径<a class="headerlink" href="#agentic-search" title="Link to this heading"></a></h2>
+<p>MindMemOS 还支持一种 <strong>LLM 驱动的多轮搜索</strong>（agentic search）：</p>
+<pre  class="mermaid">
+        graph TB
+    AS[&quot;AgenticSearchPipeline&quot;] --&gt; PL[&quot;Planner&lt;br/&gt;pipelines/search/agentic/planner.py&quot;]
+    PL --&gt;|&quot;LLM 规划&lt;br/&gt;生成 search plan&quot;| TL[&quot;ToolRouter&lt;br/&gt;pipelines/search/agentic/tool_router.py&quot;]
+    
+    TL --&gt;|&quot;bm25_search&quot;| Q[&quot;MemoryDbReader.search_sparse()&quot;]
+    TL --&gt;|&quot;entity_search&quot;| ER[&quot;EntityRecall&lt;br/&gt;components/searcher/entity_recall.py&quot;]
+    TL --&gt;|&quot;graph_search&quot;| R[&quot;MemoryDbReader.list_memory_neighbor_scopes()&quot;]
+    
+    TL --&gt; LOOP[&quot;AgenticLoop&lt;br/&gt;pipelines/search/agentic/loop.py&quot;]
+    LOOP --&gt;|&quot;sufficiency check?&quot;| SUF[&quot;SufficiencyChecker&lt;br/&gt;pipelines/search/agentic/sufficiency.py&quot;]
+    
+    SUF --&gt;|&quot;足够&quot;| WRAP[&quot;Wrapper → 返回结果&quot;]
+    SUF --&gt;|&quot;不足&quot;| LOOP
+    </pre><p><strong>特点</strong>：Agentic Search 不依赖单次向量检索，而是用 LLM 动态决定下一步搜索策略，适合需要多跳推理的查询。</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="07-add-chain.html" class="btn btn-neutral float-left" title="7. Add Pipeline 模块调用链" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="09-dreaming-chain.html" class="btn btn-neutral float-right" title="9. Dreaming Pipeline 模块调用链" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, mindscale-noah.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

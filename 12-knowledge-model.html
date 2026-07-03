@@ -1,0 +1,866 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1. 知识模型设计理念 &mdash; MindMemOS 设计理念与技术架构</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="2. 知识拆解入库流程设计" href="13-knowledge-ingestion.html" />
+    <link rel="prev" title="MindMemOS — 模块设计解析" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            MindMemOS 模块设计解析
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">上篇 · 设计理念篇</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">1. 知识模型设计理念</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id2">1.1. 知识的三种基本形态</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#memory">1.2. Memory（记忆）——最小的知识单元</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id3">1.2.1. 什么是 Memory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">1.2.2. 为什么选择自然语言作为 Memory 的载体？</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#entity">1.3. Entity（实体）——知识的锚点</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id5">1.3.1. 什么是 Entity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">1.3.2. Entity 的两种角色</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#relationship">1.4. Relationship（关系）——知识之间的连接</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id7">1.5. 7 种 Memory 类型</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id8">1.6. 知识图谱的拓扑</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id9">1.7. 为什么这样设计？</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="13-knowledge-ingestion.html">2. 知识拆解入库流程设计</a></li>
+<li class="toctree-l1"><a class="reference internal" href="14-knowledge-organization.html">3. 知识组织方式设计</a></li>
+<li class="toctree-l1"><a class="reference internal" href="15-knowledge-retrieval.html">4. 知识组装排序提取设计</a></li>
+<li class="toctree-l1"><a class="reference internal" href="16-knowledge-consolidation.html">5. 知识巩固（Dreaming）设计</a></li>
+<li class="toctree-l1"><a class="reference internal" href="17-knowledge-feedback.html">6. 知识反馈闭环设计</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">下篇 · 技术框架篇</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="01-intro.html">1. 项目概述</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02-module-architecture.html">2. 模块互联架构</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03-pipeline-registry.html">3. Pipeline 注册与发现机制</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04-api-to-storage.html">4. 请求链路：API → Service → Pipeline → Storage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05-dual-write.html">5. 双存储一致性模型</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06-kafka-bus.html">6. Kafka 事件总线与 Worker 架构</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07-add-chain.html">7. Add Pipeline 模块调用链</a></li>
+<li class="toctree-l1"><a class="reference internal" href="08-search-chain.html">8. Search Pipeline 模块调用链</a></li>
+<li class="toctree-l1"><a class="reference internal" href="09-dreaming-chain.html">9. Dreaming Pipeline 模块调用链</a></li>
+<li class="toctree-l1"><a class="reference internal" href="10-feedback-chain.html">10. Feedback Pipeline 模块调用链</a></li>
+<li class="toctree-l1"><a class="reference internal" href="11-deployment.html">11. 部署与配置</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">MindMemOS 模块设计解析</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">1. </span>知识模型设计理念</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/12-knowledge-model.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1><span class="section-number">1. </span>知识模型设计理念<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
+<p>本章是 MindMemOS 的<strong>知识白皮书</strong>——不涉及具体代码和模块，只讨论系统对”知识”的理解：知识在系统中被定义成什么形态、为什么这样定义、以及这些定义如何支撑记忆的写入和检索。</p>
+<section id="id2">
+<h2><span class="section-number">1.1. </span>知识的三种基本形态<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>MindMemOS 将一切知识归纳为三种基本形态，所有功能都围绕它们展开。</p>
+<pre  class="mermaid">
+        graph TB
+    subgraph &quot;外部输入（原始知识）&quot;
+        RAW[&quot;自然语言文本&lt;br/&gt;对话/文档/消息/文件&quot;]
+    end
+    
+    subgraph &quot;系统内部（结构化知识）&quot;
+        M[&quot;Memory 记忆&lt;br/&gt;最小的知识单元&quot;]
+        E[&quot;Entity 实体&lt;br/&gt;知识中的关键对象&quot;]
+        R[&quot;Relationship 关系&lt;br/&gt;知识间的连接&quot;]
+    end
+    
+    subgraph &quot;高阶产物&quot;
+        MEM[&quot;Memories 集合&lt;br/&gt;同 scope 的记忆组&quot;]
+        PROF[&quot;Profile&lt;br/&gt;用户画像&quot;]
+        EPI[&quot;Episodic&lt;br/&gt;情节性记忆&quot;]
+        SKILL[&quot;Skill&lt;br/&gt;可复用的技能模式&quot;]
+    end
+    
+    RAW --&gt;|&quot;提取&quot;| M
+    RAW --&gt;|&quot;识别&quot;| E
+    M --&gt;|&quot;通过关系连接&quot;| R
+    E --&gt;|&quot;被记忆提及&quot;| R
+    
+    M --&gt; MEM
+    M --&gt; PROF
+    M --&gt; EPI
+    M --&gt; SKILL
+    </pre></section>
+<section id="memory">
+<h2><span class="section-number">1.2. </span>Memory（记忆）——最小的知识单元<a class="headerlink" href="#memory" title="Link to this heading"></a></h2>
+<section id="id3">
+<h3><span class="section-number">1.2.1. </span>什么是 Memory<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<p>Memory 是 MindMemOS 中<strong>最小的、自包含的知识单元</strong>。一条 Memory 代表一个原子性的事实或观察。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># 概念模型（非真实代码）</span>
+<span class="n">Memory</span> <span class="p">{</span>
+    <span class="nb">id</span><span class="p">:</span>          <span class="nb">str</span>           <span class="c1"># 全局唯一</span>
+    <span class="n">content</span><span class="p">:</span>     <span class="nb">str</span>           <span class="c1"># 知识正文（自然语言）</span>
+    <span class="nb">type</span><span class="p">:</span>        <span class="n">MemoryType</span>    <span class="c1"># 知识分类</span>
+    <span class="n">status</span><span class="p">:</span>      <span class="s2">&quot;active&quot;</span> <span class="o">|</span> <span class="s2">&quot;archived&quot;</span>
+    <span class="n">created_at</span><span class="p">:</span>  <span class="n">datetime</span>
+    
+    <span class="c1"># 身份上下文（10 字段）</span>
+    <span class="n">project_id</span><span class="p">:</span>  <span class="nb">str</span>           <span class="c1"># 租户隔离</span>
+    <span class="n">user_id</span><span class="p">:</span>     <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>    <span class="c1"># 用户归属</span>
+    <span class="n">session_id</span><span class="p">:</span>  <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>    <span class="c1"># 会话归属</span>
+    <span class="n">agent_id</span><span class="p">:</span>    <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>    <span class="c1"># Agent 归属</span>
+    <span class="o">...</span>
+    
+    <span class="c1"># 语义向量</span>
+    <span class="n">bm25_vector</span><span class="p">:</span> <span class="n">SparseVector</span>  <span class="c1"># 稀疏检索向量</span>
+    
+    <span class="c1"># 溯源</span>
+    <span class="n">root_id</span><span class="p">:</span>     <span class="p">[</span><span class="nb">str</span><span class="p">]</span>         <span class="c1"># 版本链根</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>设计原则</strong>：一条 Memory 是自描述的——它携带了足够多的身份字段（account/project/user/session/agent…）以实现多租户硬隔离，同时保留溯源能力（root_id 链）。</p>
+</section>
+<section id="id4">
+<h3><span class="section-number">1.2.2. </span>为什么选择自然语言作为 Memory 的载体？<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>这不是偶然的——系统的所有输入输出都是自然语言，所以最自然的存储粒度也是自然语言。相比”结构化三元组”（subject-predicate-object）的方案：</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>维度</p></th>
+<th class="head"><p>自然语言 Memory</p></th>
+<th class="head"><p>结构化三元组</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>信息密度</strong></p></td>
+<td><p>一段话承载多个事实</p></td>
+<td><p>一条三元组承载一个事实</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>提取代价</strong></p></td>
+<td><p>一次 LLM 调用即可提取</p></td>
+<td><p>需要多次 LLM 调用分解</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>人类可读</strong></p></td>
+<td><p>直接可读</p></td>
+<td><p>需要重新组装</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>检索召回</strong></p></td>
+<td><p>全文/向量检索自然匹配</p></td>
+<td><p>需要图遍历或 SPARQL</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>精度</strong></p></td>
+<td><p>模糊但有上下文</p></td>
+<td><p>精确但丢失上下文</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>取舍</strong>：MindMemOS 选择了<strong>以自然语言为主体、实体和关系作为辅助索引</strong>的混合方案。Memory 本身不是纯文本块——它附带 BM25 稀疏向量和实体提及关系，支持高精度检索。但检索结果的主体始终是<strong>自然语言段落</strong>，不是三元组。</p>
+</section>
+</section>
+<section id="entity">
+<h2><span class="section-number">1.3. </span>Entity（实体）——知识的锚点<a class="headerlink" href="#entity" title="Link to this heading"></a></h2>
+<section id="id5">
+<h3><span class="section-number">1.3.1. </span>什么是 Entity<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<p>Entity 是知识中<strong>可命名、可区分、可关联的关键对象</strong>。它从 Memory 的文本中被提取出来，充当跨 Memory 连接的锚点。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Entity</span> <span class="p">{</span>
+    <span class="nb">id</span><span class="p">:</span>             <span class="nb">str</span>          <span class="c1"># UUID5(project_id, type, name) → 确定性的</span>
+    <span class="n">name</span><span class="p">:</span>           <span class="nb">str</span>          <span class="c1"># 实体名称</span>
+    <span class="n">canonical_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>   <span class="c1"># 规范名（用于合并别名）</span>
+    <span class="n">entity_type</span><span class="p">:</span>    <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>   <span class="c1"># 实体类型（person/org/location/...）</span>
+    <span class="n">description</span><span class="p">:</span>    <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>   <span class="c1"># 描述</span>
+    <span class="n">aliases</span><span class="p">:</span>        <span class="p">[</span><span class="nb">str</span><span class="p">]</span>        <span class="c1"># 别名列表</span>
+    <span class="n">confidence</span><span class="p">:</span>     <span class="nb">float</span>        <span class="c1"># 提取置信度</span>
+    <span class="n">search_fields</span><span class="p">:</span>  <span class="p">[</span><span class="nb">str</span><span class="p">]</span>        <span class="c1"># 关联的 Memory 文本（用于实体搜索）</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>关键设计</strong>：Entity ID 是<strong>确定性的</strong>——由 <code class="docutils literal notranslate"><span class="pre">UUID5(project_id,</span> <span class="pre">entity_type,</span> <span class="pre">canonical_name)</span></code> 生成，相同的实体在同一项目中永远指向同一个 UUID。这使得实体合并不需要加锁或协调。</p>
+</section>
+<section id="id6">
+<h3><span class="section-number">1.3.2. </span>Entity 的两种角色<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>作为检索入口                  作为图节点
+    │                            │
+    ▼                            ▼
+用户搜索&quot;压力异常&quot;             Memory─MENTIONS→Entity←MENTIONS─Memory
+    │                            │
+    ▼                            ▼
+→ 命中 Entity pressure_anomaly  → 关联到所有提及该实体的 Memory
+→ 返回关联的 Memory             → 实现多跳推理
+</pre></div>
+</div>
+</section>
+</section>
+<section id="relationship">
+<h2><span class="section-number">1.4. </span>Relationship（关系）——知识之间的连接<a class="headerlink" href="#relationship" title="Link to this heading"></a></h2>
+<p>MindMemOS 定义了 8 种图关系类型，分成三类：</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>类别</p></th>
+<th class="head"><p>关系</p></th>
+<th class="head"><p>连接</p></th>
+<th class="head"><p>用途</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>提及</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MENTIONS</span></code></p></td>
+<td><p>Memory → Entity</p></td>
+<td><p>标记一段记忆提到了哪个实体</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>关联</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RELATES_TO</span></code></p></td>
+<td><p>Memory → Memory</p></td>
+<td><p>强关联（因果/时序/主题）</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>关联</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RELATED_TO</span></code></p></td>
+<td><p>Memory → Memory</p></td>
+<td><p>弱关联（语义相关）</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>属性</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">HAS_PROPERTY_MEMORY</span></code></p></td>
+<td><p>Entity → Memory</p></td>
+<td><p>实体的属性值记忆</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>时序</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">NEXT_IN_PROPERTY_TIMELINE</span></code></p></td>
+<td><p>Memory → Memory</p></td>
+<td><p>同一属性的时间线</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>溯源</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">EXTRACTED_FROM</span></code></p></td>
+<td><p>Memory → Source</p></td>
+<td><p>记忆从哪个源文件提取</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>溯源</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MENTIONED_IN_SOURCE</span></code></p></td>
+<td><p>Entity → Source</p></td>
+<td><p>实体在哪个源文件中被提及</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>谱系</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DERIVED_FROM</span></code></p></td>
+<td><p>Memory → Memory</p></td>
+<td><p>版本层级（consolidate 后的派生链）</p></td>
+</tr>
+</tbody>
+</table>
+<pre  class="mermaid">
+        graph TB
+    subgraph &quot;实体层&quot;
+        E1[&quot;Entity&lt;br/&gt;压力传感器&quot;]
+        E2[&quot;Entity&lt;br/&gt;密封圈&quot;]
+    end
+    
+    subgraph &quot;记忆层&quot;
+        M1[&quot;Memory&lt;br/&gt;压力异常 detected&quot;]
+        M2[&quot;Memory&lt;br/&gt;检查密封圈正常&quot;]
+        M3[&quot;Memory&lt;br/&gt;干法清洗后恢复&quot;]
+    end
+    
+    subgraph &quot;源层&quot;
+        S1[&quot;Source&lt;br/&gt;维修报告 2026-06&quot;]
+        S2[&quot;Source&lt;br/&gt;传感器日志&quot;]
+    end
+    
+    M1 --&gt;|&quot;MENTIONS&quot;| E1
+    M1 --&gt;|&quot;MENTIONS&quot;| E2
+    M2 --&gt;|&quot;MENTIONS&quot;| E2
+    M3 --&gt;|&quot;MENTIONS&quot;| E1
+    M1 --&gt;|&quot;RELATES_TO&quot;| M2
+    M2 --&gt;|&quot;RELATES_TO&quot;| M3
+    M1 --&gt;|&quot;EXTRACTED_FROM&quot;| S1
+    E1 --&gt;|&quot;MENTIONED_IN_SOURCE&quot;| S2
+    </pre><p><strong>设计要点</strong>：关系类型是有向的、带类型的边。Neo4j 中的边标签就是上表的 8 种。关注”连接什么和不连接什么”比关注”如何遍历”更重要。</p>
+</section>
+<section id="id7">
+<h2><span class="section-number">1.5. </span>7 种 Memory 类型<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<p>MindMemOS 定义了 7 种 Memory Type，对应不同来源的知识：</p>
+<pre  class="mermaid">
+        graph LR
+    subgraph &quot;原始输入&quot;
+        RAW[&quot;对话/文档/消息&quot;]
+    end
+    
+    subgraph &quot;按来源分类&quot;
+        RAW --&gt;|&quot;直接陈述&quot;| FACT[&quot;fact&lt;br/&gt;事实性知识&quot;]
+        RAW --&gt;|&quot;长期观察&quot;| PROFILE[&quot;profile&lt;br/&gt;画像/偏好&quot;]
+        RAW --&gt;|&quot;事件经历&quot;| EXP[&quot;experience&lt;br/&gt;经历经验&quot;]
+        RAW --&gt;|&quot;情节回放&quot;| EPI[&quot;episodic&lt;br/&gt;情节性记忆&quot;]
+        RAW --&gt;|&quot;工具调用&quot;| TOOL[&quot;tool_trace&lt;br/&gt;工具调用痕迹&quot;]
+        RAW --&gt;|&quot;技能模式&quot;| SKILL[&quot;skill_candidate&lt;br/&gt;可复用技能&quot;]
+        RAW --&gt;|&quot;文件知识&quot;| FILE[&quot;file_knowledge&lt;br/&gt;文档知识&quot;]
+    end
+    
+    subgraph &quot;检索行为&quot;
+        FACT --&gt;|&quot;BM25 全文&quot;| SEARCH[&quot;通用检索&quot;]
+        PROFILE --&gt;|&quot;实体关联&quot;| SEARCH
+        EXP --&gt;|&quot;时序排序&quot;| SEARCH
+        TOOL --&gt;|&quot;结构化匹配&quot;| SEARCH
+        FILE --&gt;|&quot;BM25 检索&quot;| SEARCH
+    end
+    </pre></section>
+<section id="id8">
+<h2><span class="section-number">1.6. </span>知识图谱的拓扑<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<p>整个系统的知识图谱呈<strong>星形-链式混合拓扑</strong>：</p>
+<pre  class="mermaid">
+        graph TB
+    subgraph &quot;星形（Entity 为中心）&quot;
+        E[&quot;Entity&quot;] --- M1[&quot;Memory A&quot;]
+        E --- M2[&quot;Memory B&quot;]
+        E --- M3[&quot;Memory C&quot;]
+    end
+    
+    subgraph &quot;链式（Memory 间）&quot;
+        M4[&quot;Memory D&quot;] --&gt;|&quot;RELATES_TO&quot;| M5[&quot;Memory E&quot;]
+        M5 --&gt;|&quot;RELATES_TO&quot;| M6[&quot;Memory F&quot;]
+    end
+    
+    subgraph &quot;属性时间线&quot;
+        E2[&quot;Entity&quot;] --&gt;|&quot;HAS_PROPERTY&quot;| M7[&quot;属性值 v1&quot;]
+        M7 --&gt;|&quot;NEXT_IN&quot;| M8[&quot;属性值 v2&quot;]
+        M8 --&gt;|&quot;NEXT_IN&quot;| M9[&quot;属性值 v3&quot;]
+    end
+    </pre><p>这份拓扑直接决定了系统的检索策略（见第 15 章）。</p>
+</section>
+<section id="id9">
+<h2><span class="section-number">1.7. </span>为什么这样设计？<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<p>MindMemOS 的知识模型围绕三个设计目标展开：</p>
+<ol class="arabic simple">
+<li><p><strong>检索优先</strong>— 系统的主要使用场景是”我记得提到过 X，找出来”。自然语言 Memory + BM25 向量索引为此优化。</p></li>
+<li><p><strong>可推理</strong>— Memory 之间通过 Entity 和关系连接，支持图遍历（多跳推理）。这与纯向量检索系统的关键区别。</p></li>
+<li><p><strong>可溯源</strong>— 每条 Memory 都携带完整的身份上下文。谁说的、什么时候、在哪个会话里、从哪个源提取——全部保留。</p></li>
+</ol>
+<pre  class="mermaid">
+        graph LR
+    subgraph &quot;设计三角&quot;
+        A[&quot;检索优先&lt;br/&gt;BM25 + Entity 入口&quot;]
+        B[&quot;可推理&lt;br/&gt;图遍历 + 多跳&quot;]
+        C[&quot;可溯源&lt;br/&gt;10 字段身份上下文&quot;]
+    end
+    
+    A --- B
+    B --- C
+    C --- A
+    </pre><p><strong>不是三元组存储</strong>，不是文档库，不是纯向量库——是<strong>以自然语言为主体、实体为索引、关系为推理通路的混合知识模型</strong>。</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="MindMemOS — 模块设计解析" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="13-knowledge-ingestion.html" class="btn btn-neutral float-right" title="2. 知识拆解入库流程设计" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, mindscale-noah.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
