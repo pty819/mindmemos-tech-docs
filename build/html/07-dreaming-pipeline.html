@@ -57,12 +57,12 @@
 <li class="toctree-l3"><a class="reference internal" href="#llm">7.2.2. LLM 调用阶段</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#id8">7.3. 两种执行模式</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id9">7.4. 配置项</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">7.3. 两种执行模式</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">7.4. 配置项</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="08-feedback-pipeline.html">8. Feedback Pipeline — 在线反馈修正</a></li>
-<li class="toctree-l1"><a class="reference internal" href="09-components.html">9. 核心组件详解 (<code class="docutils literal notranslate"><span class="pre">components/</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="09-components.html">9. 核心组件详解</a></li>
 <li class="toctree-l1"><a class="reference internal" href="10-infrastructure.html">10. 基础设施层</a></li>
 <li class="toctree-l1"><a class="reference internal" href="11-integration.html">11. 集成方式</a></li>
 <li class="toctree-l1"><a class="reference internal" href="12-benchmark.html">12. Benchmark 与性能</a></li>
@@ -146,7 +146,7 @@ Action Application (阶段4)
 </section>
 <section id="llm">
 <h3><span class="section-number">7.2.2. </span>LLM 调用阶段<a class="headerlink" href="#llm" title="Link to this heading"></a></h3>
-<p><a href="#id4"><span class="problematic" id="id5">**</span></a>LLM #1 — Relation Detection**（<code class="docutils literal notranslate"><span class="pre">components/dreaming/relation_detection.py</span></code>）：</p>
+<p><strong>LLM #1 — Relation Detection</strong>  (<code class="docutils literal notranslate"><span class="pre">components/dreaming/relation_detection.py</span></code>)：</p>
 <p>输入：一个聚类内的所有记忆 + scope 元信息
 输出：<code class="docutils literal notranslate"><span class="pre">DetectedMemoryIssueGroup</span></code> — 问题类型包括：</p>
 <ul class="simple">
@@ -157,13 +157,13 @@ Action Application (阶段4)
 <li><p><code class="docutils literal notranslate"><span class="pre">canonical</span></code> — 可以确立为标准表述</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">complementary</span></code> — 互补可合并</p></li>
 </ul>
-<p><a href="#id6"><span class="problematic" id="id7">**</span></a>LLM #2 — Action Planning**（<code class="docutils literal notranslate"><span class="pre">components/dreaming/action_planning.py</span></code>）：</p>
+<p><strong>LLM #2 — Action Planning</strong>  (<code class="docutils literal notranslate"><span class="pre">components/dreaming/action_planning.py</span></code>)：</p>
 <p>输入：问题组 + 相关记忆
 输出：<code class="docutils literal notranslate"><span class="pre">ConsolidationAction</span></code> — 具体的增/改/删/合操作</p>
 </section>
 </section>
-<section id="id8">
-<h2><span class="section-number">7.3. </span>两种执行模式<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<section id="id4">
+<h2><span class="section-number">7.3. </span>两种执行模式<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>模式          | Sync                     | Async (默认)
 -------------+--------------------------+-------------------------
 触发方式     | HTTP 请求 ?sync=true      | Kafka 消息
@@ -172,8 +172,8 @@ Action Application (阶段4)
 </pre></div>
 </div>
 </section>
-<section id="id9">
-<h2><span class="section-number">7.4. </span>配置项<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<section id="id5">
+<h2><span class="section-number">7.4. </span>配置项<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
 <p>在 <code class="docutils literal notranslate"><span class="pre">config/algo/dreaming.py</span></code> 中定义：</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">DreamingConfig</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
     <span class="n">lookback_days</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">7</span>            <span class="c1"># 最近活动窗口</span>
