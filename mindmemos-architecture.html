@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>MindMemOS 模块互联与核心时序</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  body { background: #0d1117; color: #e6edf3; font-family: -apple-system, 'Segoe UI', sans-serif; padding: 20px; max-width: 1400px; margin: 0 auto; }
+  h1 { color: #58a6ff; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+  h2 { color: #79c0ff; margin-top: 40px; border-bottom: 1px solid #21262d; padding-bottom: 6px; }
+  h3 { color: #a5d6ff; margin-top: 30px; }
+  .diagram-box { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin: 16px 0; overflow-x: auto; }
+  .diagram-box svg { max-width: 100%; height: auto; }
+  .desc { color: #8b949e; font-size: 0.9em; margin: 8px 0; }
+  hr { border: none; border-top: 1px solid #21262d; margin: 24px 0; }
+  table { border-collapse: collapse; margin: 12px 0; width: 100%; }
+  th, td { border: 1px solid #30363d; padding: 8px 12px; text-align: left; }
+  th { background: #21262d; color: #79c0ff; }
+  tr:nth-child(even) { background: #161b22; }
+  .code { background: #1e242b; padding: 2px 6px; border-radius: 4px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.85em; color: #f0883e; }
+  .nav { position: sticky; top: 0; background: #0d1117; padding: 10px 0; border-bottom: 1px solid #30363d; margin-bottom: 20px; z-index: 100; }
+  .nav a { color: #58a6ff; margin-right: 20px; text-decoration: none; font-size: 0.9em; }
+  .nav a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <a href="#ch1">§1 模块互联架构</a>
+  <a href="#ch2">§2 Add 同步时序</a>
+  <a href="#ch3">§3 Add 异步时序</a>
+  <a href="#ch4">§4 Search 时序</a>
+  <a href="#ch5">§5 Dreaming 时序</a>
+  <a href="#ch6">§6 Feedback 时序</a>
+  <a href="#ch7">§7 Kafka 事件驱动全貌</a>
+</div>
+
+<h1>🧠 MindMemOS 模块互联架构与核心时序</h1>
+<p style="color:#8b949e">基于 <code class="code">src/mindmemos/mindmemos/</code> 全量源码分析 · 7 张 Mermaid 图</p>
+
+<hr>
+
+<h2 id="ch1">§1 模块互联架构</h2>
+<div class="diagram-box">
+<pre class="mermaid">
+graph TB
+    subgraph "L1 - API Layer (api/)"
+        RT["routes.py<br/>HTTP endpoints"]
+        IR["internal_routes.py<br/>internal API"]
+        SR["skill_routes.py"]
+        SVC["services/memory_service.py<br/>Stateless facade"]
+        DEPS["deps.py<br/>Auth chain"]
+    end
+
+    subgraph "L2 - Pipeline Layer (pipelines/)"
+        REG["registry.py<br/>Global dict: {type: {name: class}}"]
+        BASE["base.py<br/>MemoryDbPipelineMixin"]
+        ADD["add/"]
+        SEARCH["search/"]
+        DREAM["dreaming/"]
+        FEEDBACK["feedback/"]
+        GET["get/"] 
+        DEL["delete/"]
+        UPD["update/"]
+        MEMDB["memory_db/"]
+    end
+
+    subgraph "L3 - Component Layer (components/)"
+        EXTR["extractor/"]
+        CHUNK["chunker/"]
+        SEARCHC["searcher/"]
+        MM["memory_modeling/"]
+        DREAMC["dreaming/"]
+        FEEDBACKC["feedback/"]
+        ACTIVITY["activity/"]
+        TEXT["text/"]
+        KAFKA["kafka/ (dispatch key)"]
+    end
+
+    subgraph "L4 - Infrastructure Layer (infra/)"
+        DB["db/"]
+        KAFKA_INFRA["kafka/"]
+        TELE["telemetry/"]
+        RETRY["retry/"]
+    end
+
+    subgraph "L5 - Foundation Layer"
+        TYPING["typing/ (DTOs)"]
+        CONFIG["config/"]
+        LLM["llm/"]
+        LOG["logging/"]
+        MAPPERS["mappers/"]
+        ERRORS["errors/"]
+    end
+
+    subgraph "Worker Processes (workers/)"
+        W_ADD["memory_add.py"]
+        W_DREAM["memory_dreaming.py"]
+        W_FB["memory_feedback.py"]
+        W_DRAIN["schema_add_drain.py"]
+        W_EP["schema_add_episode.py"]
+        W_SKILL["skill_evolve.py"]
+    end
+
+    RT --> DEPS
+    DEPS -->|"resolve_api_key()"| SVC
+    RT --> SVC
+    IR --> SVC
+    SR --> SVC
+
+    SVC -->|"create_pipeline(type,name)"| REG
+    SVC -->|"binding_for_memory_algorithm()"| ALGO["api/algorithm.py"]
+    ALGO -->|"vanilla→vanilla_add/vanilla<br/>schema→schema_add/schema"| REG
+
+    REG -->|"instantiate"| ADD
+    REG -->|"instantiate"| SEARCH
+    REG -->|"instantiate"| DREAM
+    REG -->|"instantiate"| FEEDBACK
+    REG -->|"instantiate"| GET
+    REG -->|"instantiate"| DEL
+    REG -->|"instantiate"| UPD
+
+    BASE -->|"provides db_reader/db_writer/recorder"| ADD
+    BASE -->|"provides"| SEARCH
+    BASE -->|"provides"| DREAM
+    BASE -->|"provides"| FEEDBACK
+    BASE -->|"provides"| GET
+    BASE -->|"provides"| DEL
+    BASE -->|"provides"| UPD
+
+    ADD -->|"use"| TEXT
+    ADD -->|"use"| KAFKA
+    ADD --> MEMDB
+
+    SEARCH -->|"use"| SEARCHC
+    SEARCH -->|"use"| TEXT
+    SEARCH --> MEMDB
+
+    DREAM -->|"use"| DREAMC
+    DREAM -->|"use"| ACTIVITY
+    DREAM -->|"use"| LLM
+    DREAM --> MEMDB
+
+    FEEDBACK -->|"use"| FEEDBACKC
+    FEEDBACK --> MEMDB
+
+    MEMDB -->|"MemoryDbWriter"| DB
+    MEMDB -->|"MemoryDbReader"| DB
+    
+    DB -->|"QdrantEngine (BM25+vectors)"| Q["Qdrant (external)"]
+    DB -->|"Neo4jClient (graph)"| N["Neo4j (external)"]
+
+    KAFKA_INFRA -->|"OrderedKeyedDispatcher"| K["Kafka (external)"]
+
+    SVC --- KAFKA_INFRA
+
+    KAFKA_INFRA -->|"consume"| W_ADD
+    KAFKA_INFRA -->|"consume"| W_DREAM
+    KAFKA_INFRA -->|"consume"| W_FB
+    KAFKA_INFRA -->|"consume"| W_DRAIN
+    KAFKA_INFRA -->|"consume"| W_EP
+    KAFKA_INFRA -->|"consume"| W_SKILL
+
+    W_ADD --> ADD
+    W_DREAM --> DREAM
+    W_FB --> FEEDBACK
+
+    LLM -->|"embed()"| EMBED_API["Embedding API"]
+    LLM -->|"chat()"| LLM_API["Chat LLM API"]
+
+    TYPING -->|"imported by EVERY layer"| DB
+    TYPING -->|"imported by EVERY layer"| SVC
+    TYPING -->|"imported by EVERY layer"| ADD
+    TYPING -->|"imported by EVERY layer"| KAFKA_INFRA
+</pre>
+</div>
+<p class="desc">五层架构：API → Pipeline → Component → Infra → Foundation。最下层 typing/ 被所有层导入。Kafka 连接 API 和 Workers。</p>
+
+<hr>
+
+<h2 id="ch2">§2 Add Pipeline — 同步路径</h2>
+<div class="diagram-box">
+<pre class="mermaid">
+sequenceDiagram
+    actor Client
+    participant Routes as routes.py
+    participant Auth as Auth chain
+    participant Svc as MemoryService
+    participant Pipe as AddPipeline
+    participant Writer as MemoryDbWriter
+    participant Qd as QdrantEngine
+    participant Neo as Neo4jClient
+
+    Client->>Routes: POST add mode=sync
+    Routes->>Auth: require_scopes
+    Auth->>Auth: resolve_key
+    Auth-->>Routes: AuthContext
+    
+    Routes->>Svc: add(payload)
+    Svc->>Svc: binding_for_algorithm
+    Svc->>Svc: build_context+input
+    
+    Svc->>Pipe: add_sync
+    
+    Pipe->>Pipe: _build_plan
+    Note over Pipe: preprocess text each msg
+    Note over Pipe: extract entities
+    Note over Pipe: build BM25 vectors
+    Note over Pipe: build MemoryWrite+EntityWrite+MENTIONS
+    
+    Pipe->>Writer: apply_mutation_plan
+    
+    alt fast default
+        Writer->>Qd: asyncio.gather upsert
+        Writer->>Neo: create_relationships
+        Note over Writer,Qd,Neo: parallel writes, errors logged
+    else strong
+        Writer->>Qd: upsert memories+entities
+        Writer->>Neo: create relationships
+        Note over Writer,Qd,Neo: sequential, errors propagate
+    end
+    
+    Qd-->>Writer: done
+    Neo-->>Writer: done
+    Writer-->>Pipe: WriteResult
+    
+    Pipe->>Pipe: mark_completed
+    
+    Pipe-->>Svc: SyncResult ok
+    Svc-->>Routes: ApiResponse
+    Routes-->>Client: 200 OK
+</pre>
+</div>
+
+<hr>
+
+<h2 id="ch3">§3 Add Pipeline — 异步路径（Kafka Worker）</h2>
+<div class="diagram-box">
+<pre class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant R as routes.py
+    participant SVC as MemoryService
+    participant P_ASYNC as AddPipeline (async)
+    participant PROD as Kafka Producer
+    participant K as Kafka Broker
+    participant CONS as Consumer memory_add.py
+    participant P_SYNC as AddPipeline (sync)
+    participant W as MemoryDbWriter
+
+    C->>R: POST /v1/memory/add {messages, mode:"async"}
+    R->>SVC: add(auth, request)
+    SVC->>SVC: record_add_input(status="queued")
+    
+    SVC->>P_ASYNC: add_async(payload, context)
+    P_ASYNC->>PROD: get_producer().send("memory.add")
+    Note over P_ASYNC: message = {context, input, add_record_id}
+    PROD->>K: produce to partition (dispatch_key=project_id)
+    P_ASYNC-->>SVC: AddPipelineAsyncResult(status="queued")
+    SVC-->>C: 200 {code:"queued", data:{add_record_id}}
+    
+    Note over CONS: 后台异步处理 ↓
+    
+    K->>CONS: deliver message
+    CONS->>CONS: binding_for_memory_algorithm().add_pipeline
+    CONS->>P_SYNC: create_pipeline("add", name)
+    CONS->>CONS: recorder.mark_add_processing()
+    CONS->>P_SYNC: add_sync(payload, context)
+    
+    P_SYNC->>P_SYNC: _build_plan()
+    P_SYNC->>W: apply_mutation_plan()
+    W->>W: _write_plan()
+    Note over W: parallel: Qdrant upsert + Neo4j graph
+    
+    alt 成功
+        CONS->>CONS: recorder.mark_add_completed()
+    else 失败
+        CONS->>CONS: recorder.mark_add_failed()
+    end
+</pre>
+</div>
+
+<hr>
+
+<h2 id="ch4">§4 Search Pipeline — BM25 路径</h2>
+<div class="diagram-box">
+<pre class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant R as routes.py
+    participant SVC as MemoryService
+    participant P as SearchPipeline
+    participant SE as DefaultSearchEngine
+    participant RDR as MemoryDbReader
+    participant Q as QdrantEngine
+    
+    C->>R: POST /v1/memory/search {query, filters, top_k}
+    R->>SVC: search(auth, request)
+    SVC->>SVC: binding_for_memory_algorithm()
+    Note over SVC: determines search_pipeline name
+    
+    SVC->>P: search(payload, context)
+    
+    alt Engine = "default" (BM25)
+        P->>SE: search_candidates()
+        SE->>SE: text_preprocessor.preprocess_query()
+        SE->>SE: sparse_encoder.encode_query() → BM25 vector
+        SE->>RDR: search_sparse(context, query, indices, values)
+        RDR->>Q: qdrant.search_memories(project_id, sparse_vector, filter)
+        Q-->>RDR: QdrantSearchResult (hits)
+        RDR-->>SE: MemoryDbSearchResult
+        SE-->>P: MemorySearchItem[]
+    
+    else Engine = "schema" (BM25 + entity expansion)
+        P->>P: schema_search_expander.expand()
+        Note over P: ① BM25 找 candidate memories
+        Note over P: ② 提取 entity 属性 (property_recall)
+        Note over P: ③ entity_fusion() 多源融合
+        Note over P: ④ rerank + final_filter
+    end
+    
+    P-->>SVC: SearchPipelineResult
+    SVC->>SVC: record_search()
+    SVC-->>R: ApiResponse
+    R-->>C: 200 {code, data: {memories: [...]}}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="ch5">§5 Dreaming Pipeline — 离线记忆巩固</h2>
+<div class="diagram-box">
+<pre class="mermaid">
+sequenceDiagram
+    participant API as API / Worker
+    participant D as DefaultDreamingPipeline
+    participant ACT as ActivityCollector
+    participant RDR as MemoryDbReader
+    participant LLM as LLM Client
+    participant W as MemoryDbWriter
+    participant Q as Qdrant
+    participant N as Neo4j
+
+    API->>D: dream_sync() / dream()
+    Note over API: 可由 API POST /dreaming 触发或 Kafka worker
+
+    D->>D: _collect_scopes()
+    D->>ACT: collect_recent_activity(project_id)
+    ACT-->>D: ActivityScope[]
+    
+    D->>RDR: list_memory_neighbor_scopes()
+    Note over RDR: Neo4j Cypher: Memory→MENTIONS→Entity←MENTIONS←Memory
+    RDR-->>D: GraphNeighborScope[]
+    
+    D->>D: _merge_scopes() → ConsolidationScope[]
+    Note over D: 合并 activity + graph scopes, 按 score 排序, 取 top N
+
+    loop 每个 ConsolidationScope
+        D->>RDR: get_memories(scope.seed_memory_ids)
+        RDR-->>D: MemoryView[]
+        
+        D->>LLM: chat(RELATION_DETECTION_PROMPT)
+        Note over D: 第一轮 LLM: 检测 relations/anomalies/gaps
+        LLM-->>D: DetectedMemoryIssueGroup
+        
+        alt 有 ConsolidationAction
+            D->>LLM: chat(ACTION_PLANNING_PROMPT)
+            Note over D: 第二轮 LLM: 生成 consolidate/archive/relate 等
+            LLM-->>D: ConsolidationAction[]
+            
+            D->>D: _apply_action(action)
+            Note over D: consolidate→合成新 MemoryWrite
+            Note over D: archive→归档旧 Memories
+            Note over D: relate→写 RELATES_TO / UPDATE
+            
+            D->>W: apply_mutation_plan()
+            W->>Q: upsert / patch memories
+            W->>N: create / update relationships
+        end
+    end
+    
+    D-->>API: DreamingPipelineResult
+</pre>
+</div>
+
+<hr>
+
+<h2 id="ch6">§6 Feedback Pipeline — 学习闭环</h2>
+<div class="diagram-box">
+<pre class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant SVC as MemoryService
+    participant FB as FeedbackPipeline
+    participant LLM as LLM Client
+    participant W as MemoryDbWriter
+
+    C->>SVC: feedback({type, query, memories})
+    
+    alt Explicit Feedback
+        SVC->>FB: feedback_sync()
+        FB->>FB: explicit_planner.plan()
+        Note over FB: 解析 score/relevance/rating
+        FB->>W: update_memory(ctx, update_command)
+        Note over FB: 更新 reinforcement_count / metadata
+        
+    else Implicit Feedback
+        SVC->>FB: feedback_sync()
+        FB->>FB: signal.detect(input)
+        Note over FB: 检测隐式信号
+        FB->>LLM: chat(SEARCH_DECISION_PROMPT)
+        LLM-->>FB: search decision
+        
+        alt need_rewrite
+            FB->>LLM: chat(QUERY_REWRITE_PROMPT)
+            LLM-->>FB: rewritten_query
+            FB->>FB: action_planner.plan()
+            FB->>W: apply_mutation_plan()
+        end
+    end
+    
+    W-->>FB: write result
+    FB-->>SVC: FeedbackPipelineResult
+    SVC-->>C: 200 {code}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="ch7">§7 Kafka 事件驱动架构全貌</h2>
+<div class="diagram-box">
+<pre class="mermaid">
+sequenceDiagram
+    participant ADD_API as API /add (async)
+    participant DREAM_API as API /dreaming
+    participant FB_API as API /feedback (async)
+    participant K as Kafka Brokers
+    participant W_ADD as Worker: memory_add
+    participant W_DREAM as Worker: memory_dreaming
+    participant W_FB as Worker: memory_feedback
+    participant W_EP as Worker: schema_add_episode
+    participant W_DRAIN as Worker: schema_add_drain
+    participant W_SKILL as Worker: skill_evolve
+
+    Note over ADD_API,K: pipeline.add_async() 投递
+    ADD_API->>K: topic "memory.add" {context, input, add_record_id}
+    
+    Note over DREAM_API,K: pipeline.dream() 投递
+    DREAM_API->>K: topic "memory.dreaming" {...}
+    
+    Note over FB_API,K: pipeline.feedback_async() 投递
+    FB_API->>K: topic "memory.feedback" {...}
+
+    Note over K: OrderedKeyedDispatcher
+    Note over K: per-key (project_id) 保证有序
+    Note over K: global concurrency limit gate
+
+    K->>W_ADD: consume (group "memory-add-worker")
+    W_ADD->>W_ADD: create_pipeline("add", name).add_sync()
+    
+    K->>W_DREAM: consume (group "memory-dreaming-worker")
+    W_DREAM->>W_DREAM: create_pipeline("dreaming", name).dream_sync()
+    
+    K->>W_FB: consume
+    W_FB->>W_FB: create_pipeline("feedback", name).feedback_sync()
+
+    Note over W_EP: Schema Add Episode 构建
+    K->>W_EP: topic "memory.episode"
+    W_EP->>W_EP: handle_schema_add_episode()
+    
+    K->>W_DRAIN: topic "memory.add.drain"
+    W_DRAIN->>W_DRAIN: handle_schema_add_drain()
+    
+    K->>W_SKILL: topic "skill.evolve"
+    W_SKILL->>W_SKILL: handle_skill_evolve()
+</pre>
+</div>
+
+</body>
+</html>
